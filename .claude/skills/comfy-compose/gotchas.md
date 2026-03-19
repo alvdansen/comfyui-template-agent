@@ -22,7 +22,7 @@ Uses DFS longest-path layer assignment. Works well for pipeline-style workflows 
 ComfyUI Desktop app does NOT expose an API endpoint. Claude Code cannot queue workflows to the Desktop app. The user must open ComfyUI in a browser at `http://127.0.0.1:8188` and log into Comfy.org there. Desktop app auth is separate from browser auth — being logged in on Desktop does NOT mean the browser session is authenticated.
 
 ## API Node Auth Is Automatic (v0.2.0+)
-API node auth (Gemini, BFL, Bria, Luma, etc.) is handled automatically by the MCP server since v0.2.0. If jobs silently vanish (accepted but never execute), the MCP server likely needs updating. Previously this was an upstream gap — now resolved.
+API node auth (Gemini, BFL, Bria, Luma, etc.) is handled automatically by the MCP server since v0.2.0. Since v0.2.1, failed jobs return clear error messages instead of silently vanishing. Invalid node types and bad model names are caught before submission via pre-validation.
 
 ## Widget Value Resolution
 `set_widget` resolves by name, not index. It counts only widget-type inputs (those with `is_widget=True`) in spec order. If a spec is not loaded for that node type, `set_widget` raises `KeyError`.

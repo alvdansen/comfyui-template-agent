@@ -17,13 +17,16 @@ Before starting, check prerequisites:
 <important if="submitting to cloud">
 API node auth (Gemini, BFL, Bria, Luma) is handled automatically by the MCP server (v0.2.0+). No token passing needed.
 If a LoadImage node references a local file, it won't exist on cloud — ask the user if they have the image locally and suggest alternatives.
-If jobs silently vanish, the MCP server may need updating.
+
+**v0.2.1 improvements:**
+- Failed jobs now return clear error messages (node type, exception). No more silent failures.
+- Invalid node types and bad model names are caught before submission (pre-validation).
+- `use_previous_output` tool lets you chain workflows — reuse an output image as input in the next workflow without manual download/upload.
 
 **Polling**: Cloud jobs can take 30s to several minutes depending on complexity.
 - Poll `get_job_status` every 10-15 seconds.
 - Do NOT give up unless `get_job_status` returns an explicit error/failure status.
 - If the job is still "running" or "queued" after 2+ minutes, ask the user: "Still running — keep waiting or cancel?" Do NOT silently stop polling.
-- A job that's queued but not running is normal (waiting for GPU). Only treat it as a silent failure if it disappears from both queue AND history.
 - API node workflows (Gemini, BFL) are especially slow — budget 3-5 minutes.
 </important>
 
