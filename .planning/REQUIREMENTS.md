@@ -44,7 +44,7 @@
 
 ### Orchestration
 
-- [ ] **ORCH-01**: User can run guided phase flow: discover → ideate → compose → validate → document
+- [ ] **ORCH-01**: User can run guided phase flow: discover > ideate > compose > validate > document
 - [ ] **ORCH-02**: Each phase provides context-aware suggestions based on previous phase output
 
 ## v2 Requirements
@@ -73,7 +73,7 @@
 
 | Feature | Reason |
 |---------|--------|
-| Running/testing workflows on Comfy Cloud | Users test manually via cloud UI — automation requires auth complexity |
+| Running/testing workflows on Comfy Cloud | Users test manually via cloud UI -- automation requires auth complexity |
 | Thumbnail generation or image processing | Outputs are workflow artifacts; visual assets handled by creators |
 | OAuth/auth management for Comfy.org | Existing MCP server handles auth; this tool outputs workflows |
 | Template review/approval workflow | Organizational process, not tooling scope |
@@ -84,36 +84,36 @@
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| DISC-01 | Phase ? | Pending |
-| DISC-02 | Phase ? | Pending |
-| DISC-03 | Phase ? | Pending |
-| DISC-04 | Phase ? | Pending |
-| DISC-05 | Phase ? | Pending |
-| TMPL-01 | Phase ? | Pending |
-| TMPL-02 | Phase ? | Pending |
-| TMPL-03 | Phase ? | Pending |
-| TMPL-04 | Phase ? | Pending |
-| TMPL-05 | Phase ? | Pending |
-| COMP-01 | Phase ? | Pending |
-| COMP-02 | Phase ? | Pending |
-| COMP-03 | Phase ? | Pending |
-| COMP-04 | Phase ? | Pending |
-| VALD-01 | Phase ? | Pending |
-| VALD-02 | Phase ? | Pending |
-| VALD-03 | Phase ? | Pending |
-| VALD-04 | Phase ? | Pending |
-| DOCS-01 | Phase ? | Pending |
-| DOCS-02 | Phase ? | Pending |
-| DOCS-03 | Phase ? | Pending |
-| DOCS-04 | Phase ? | Pending |
-| ORCH-01 | Phase ? | Pending |
-| ORCH-02 | Phase ? | Pending |
+| DISC-01 | Phase 1 | Pending |
+| DISC-02 | Phase 1 | Pending |
+| DISC-03 | Phase 1 | Pending |
+| DISC-04 | Phase 1 | Pending |
+| DISC-05 | Phase 1 | Pending |
+| TMPL-01 | Phase 2 | Pending |
+| TMPL-02 | Phase 2 | Pending |
+| TMPL-03 | Phase 2 | Pending |
+| TMPL-04 | Phase 2 | Pending |
+| TMPL-05 | Phase 2 | Pending |
+| COMP-01 | Phase 4 | Pending |
+| COMP-02 | Phase 4 | Pending |
+| COMP-03 | Phase 4 | Pending |
+| COMP-04 | Phase 4 | Pending |
+| VALD-01 | Phase 3 | Pending |
+| VALD-02 | Phase 3 | Pending |
+| VALD-03 | Phase 3 | Pending |
+| VALD-04 | Phase 3 | Pending |
+| DOCS-01 | Phase 5 | Pending |
+| DOCS-02 | Phase 5 | Pending |
+| DOCS-03 | Phase 5 | Pending |
+| DOCS-04 | Phase 5 | Pending |
+| ORCH-01 | Phase 5 | Pending |
+| ORCH-02 | Phase 5 | Pending |
 
 **Coverage:**
 - v1 requirements: 24 total
-- Mapped to phases: 0
-- Unmapped: 24 ⚠️
+- Mapped to phases: 24
+- Unmapped: 0
 
 ---
 *Requirements defined: 2026-03-18*
-*Last updated: 2026-03-18 after initial definition*
+*Last updated: 2026-03-18 after roadmap creation*
