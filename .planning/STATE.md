@@ -4,12 +4,12 @@ milestone: v1.0
 milestone_name: milestone
 status: unknown
 stopped_at: Phase 3 context gathered
-last_updated: "2026-03-19T02:29:54.941Z"
+last_updated: "2026-03-19T03:01:46.297Z"
 progress:
   total_phases: 5
   completed_phases: 2
-  total_plans: 4
-  completed_plans: 4
+  total_plans: 6
+  completed_plans: 5
 ---
 
 # Project State
@@ -19,11 +19,11 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-18)
 
 **Core value:** Template creators can go from "what should we build next?" to "here's a cloud-tested workflow with submission docs" in a single guided session
-**Current focus:** Phase 02 — template-intelligence
+**Current focus:** Phase 03 — validation-engine
 
 ## Current Position
 
-Phase: 02 (template-intelligence) — EXECUTING
+Phase: 03 (validation-engine) — EXECUTING
 Plan: 2 of 2
 
 ## Performance Metrics
@@ -49,6 +49,7 @@ Plan: 2 of 2
 | Phase 01 P02 | 7min | 3 tasks | 7 files |
 | Phase 02 P01 | 4min | 3 tasks | 10 files |
 | Phase 02 P02 | 3min | 3 tasks | 3 files |
+| Phase 03 P01 | 3min | 2 tasks | 7 files |
 
 ## Accumulated Context
 
@@ -71,6 +72,9 @@ Recent decisions affecting current work:
 - [Phase 02]: fetch_all_nodes uses pages param -- adapted gap_analysis to match actual API
 - [Phase 02]: Gap scoring: log10(downloads) * (1 + log2(stars) * 0.5) balances volume with community signal
 - [Phase 02]: Coverage % is pack-level (unique packs in requiresCustomNodes / total registry packs)
+- [03-01]: UUID-style node types (>30 chars with hyphens) skipped in custom node detection to avoid false positives on subgraph references
+- [03-01]: API node detection runs as separate RuleResult outside RULE_REGISTRY to keep auth concerns distinct
+- [03-01]: Note color darkness check uses #0 prefix heuristic
 
 ### Pending Todos
 
@@ -84,5 +88,5 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-19T02:29:54.939Z
-Stopped at: Phase 3 context gathered
+Last session: 2026-03-19T03:01:04Z
+Stopped at: Completed 03-01-PLAN.md

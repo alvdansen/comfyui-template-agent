@@ -30,10 +30,10 @@
 
 ### Validation
 
-- [ ] **VALD-01**: User can check workflow for custom node usage and get core node alternatives suggested
-- [ ] **VALD-02**: User can detect API nodes in workflow and see auth requirement warnings
-- [ ] **VALD-03**: User can run full guideline compliance check (subgraph rules, color/note conventions, set/get node ban)
-- [ ] **VALD-04**: User can validate workflow for Comfy Cloud compatibility
+- [x] **VALD-01**: User can check workflow for custom node usage and get core node alternatives suggested
+- [x] **VALD-02**: User can detect API nodes in workflow and see auth requirement warnings
+- [x] **VALD-03**: User can run full guideline compliance check (subgraph rules, color/note conventions, set/get node ban)
+- [x] **VALD-04**: User can validate workflow for Comfy Cloud compatibility
 
 ### Documentation
 
@@ -98,10 +98,10 @@
 | COMP-02 | Phase 4 | Pending |
 | COMP-03 | Phase 4 | Pending |
 | COMP-04 | Phase 4 | Pending |
-| VALD-01 | Phase 3 | Pending |
-| VALD-02 | Phase 3 | Pending |
-| VALD-03 | Phase 3 | Pending |
-| VALD-04 | Phase 3 | Pending |
+| VALD-01 | Phase 3 | Complete |
+| VALD-02 | Phase 3 | Complete |
+| VALD-03 | Phase 3 | Complete |
+| VALD-04 | Phase 3 | Complete |
 | DOCS-01 | Phase 5 | Pending |
 | DOCS-02 | Phase 5 | Pending |
 | DOCS-03 | Phase 5 | Pending |
