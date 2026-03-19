@@ -853,3 +853,80 @@ class TestScaffoldFromFile:
         fp.write_text(json.dumps(api_data))
         with pytest.raises(ValueError, match="not workflow format"):
             scaffold_from_file(str(fp))
+
+
+# ── Plan 02 Task 2: Auto-layout ───────────────────────────────────────────
+
+
+class TestAutoLayout:
+    """Test auto_layout algorithm."""
+
+    def test_auto_layout_distinct_positions(self):
+        from src.composer.graph import WorkflowGraph
+        from src.composer.layout import auto_layout
+
+        data = {
+            "nodes": [
+                {"id": 1, "type": "A", "pos": [0, 0], "inputs": [], "outputs": [{"name": "OUT", "type": "IMAGE", "links": [1]}], "properties": {}, "widgets_values": []},
+                {"id": 2, "type": "B", "pos": [0, 0], "inputs": [{"name": "IN", "type": "IMAGE", "link": 1}], "outputs": [{"name": "OUT", "type": "IMAGE", "links": [2]}], "properties": {}, "widgets_values": []},
+                {"id": 3, "type": "C", "pos": [0, 0], "inputs": [{"name": "IN", "type": "IMAGE", "link": 2}], "outputs": [], "properties": {}, "widgets_values": []},
+            ],
+            "links": [[1, 1, 0, 2, 0, "IMAGE"], [2, 2, 0, 3, 0, "IMAGE"]],
+        }
+        g = WorkflowGraph.from_json(data)
+        auto_layout(g)
+        positions = [tuple(n.pos) for n in g.get_nodes()]
+        assert len(set(positions)) == len(positions), "All positions should be distinct"
+
+    def test_auto_layout_source_left_of_target(self):
+        from src.composer.graph import WorkflowGraph
+        from src.composer.layout import auto_layout
+
+        data = {
+            "nodes": [
+                {"id": 1, "type": "Source", "pos": [500, 500], "inputs": [], "outputs": [{"name": "OUT", "type": "IMAGE", "links": [1]}], "properties": {}, "widgets_values": []},
+                {"id": 2, "type": "Target", "pos": [0, 0], "inputs": [{"name": "IN", "type": "IMAGE", "link": 1}], "outputs": [], "properties": {}, "widgets_values": []},
+            ],
+            "links": [[1, 1, 0, 2, 0, "IMAGE"]],
+        }
+        g = WorkflowGraph.from_json(data)
+        auto_layout(g)
+        src_x = g.get_node(1).pos[0]
+        tgt_x = g.get_node(2).pos[0]
+        assert src_x < tgt_x, "Source node should be left of target node"
+
+    def test_auto_layout_single_node(self):
+        from src.composer.graph import WorkflowGraph
+        from src.composer.layout import auto_layout
+
+        data = {
+            "nodes": [
+                {"id": 1, "type": "Solo", "pos": [0, 0], "inputs": [], "outputs": [], "properties": {}, "widgets_values": []},
+            ],
+            "links": [],
+        }
+        g = WorkflowGraph.from_json(data)
+        auto_layout(g)
+        # Should not raise; position should be assigned
+        assert g.get_node(1).pos[0] == 100  # start_x default
+        assert g.get_node(1).pos[1] == 200  # start_y default
+
+    def test_auto_layout_disconnected_nodes(self):
+        from src.composer.graph import WorkflowGraph
+        from src.composer.layout import auto_layout
+
+        data = {
+            "nodes": [
+                {"id": 1, "type": "A", "pos": [0, 100], "inputs": [], "outputs": [], "properties": {}, "widgets_values": []},
+                {"id": 2, "type": "B", "pos": [0, 200], "inputs": [], "outputs": [], "properties": {}, "widgets_values": []},
+                {"id": 3, "type": "C", "pos": [0, 300], "inputs": [], "outputs": [], "properties": {}, "widgets_values": []},
+            ],
+            "links": [],
+        }
+        g = WorkflowGraph.from_json(data)
+        auto_layout(g)
+        # All should be in layer 0 (same x) with vertical spacing
+        xs = [g.get_node(nid).pos[0] for nid in [1, 2, 3]]
+        ys = [g.get_node(nid).pos[1] for nid in [1, 2, 3]]
+        assert all(x == 100 for x in xs), "All disconnected nodes in layer 0"
+        assert len(set(ys)) == 3, "All should have distinct y positions"
