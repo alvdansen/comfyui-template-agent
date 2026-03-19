@@ -459,36 +459,32 @@ Module count: 8 modules (default, flux, video, audio, 3d, llm, utility, getting_
 | Property | Value |
 |----------|-------|
 | Framework | pytest 9.0.2 |
-| Config file | none -- Wave 0 |
+| Config file | pyproject.toml (Plan 01 creates) |
 | Quick run command | `python -m pytest tests/ -x -q` |
 | Full suite command | `python -m pytest tests/ -v --tb=short` |
 
 ### Phase Requirements to Test Map
-| Req ID | Behavior | Test Type | Automated Command | File Exists? |
-|--------|----------|-----------|-------------------|-------------|
-| DISC-01 | Browse trending/new/rising/popular/random nodes | unit | `python -m pytest tests/test_highlights.py -x` | Wave 0 |
-| DISC-02 | Search by name/category/type | unit | `python -m pytest tests/test_search.py -x` | Wave 0 |
-| DISC-03 | Filter by media category | unit | `python -m pytest tests/test_categories.py -x` | Wave 0 |
-| DISC-04 | View node pack contents | unit | `python -m pytest tests/test_spec.py -x` | Wave 0 |
-| DISC-05 | Random node suggestions | unit | `python -m pytest tests/test_highlights.py::test_random -x` | Wave 0 |
-| INFRA | HTTP client + caching | unit | `python -m pytest tests/test_client.py -x` | Wave 0 |
-| INFRA | Format detector | unit | `python -m pytest tests/test_format_detector.py -x` | Wave 0 |
+| Req ID | Behavior | Test Type | Automated Command | Plan |
+|--------|----------|-----------|-------------------|------|
+| DISC-01 | Browse trending/new/rising/popular/random nodes | unit | `python -m pytest tests/test_highlights.py -x` | 01-02 |
+| DISC-02 | Search by name/category/type | unit | `python -m pytest tests/test_search.py -x` | 01-02 |
+| DISC-03 | Filter by media category | unit | `python -m pytest tests/test_shared.py::test_classify -x` | 01-01 (shared), 01-02 (integration) |
+| DISC-04 | View node pack contents | unit | `python -m pytest tests/test_spec.py -x` | 01-02 |
+| DISC-05 | Random node suggestions | unit | `python -m pytest tests/test_highlights.py::test_random -x` | 01-02 |
+| INFRA | HTTP client + caching + format detector + categories | unit | `python -m pytest tests/test_shared.py -x` | 01-01 |
+
+### Test File Layout
+| File | Covers | Created By |
+|------|--------|------------|
+| `tests/test_shared.py` | HTTP client, cache, format detector, categories, Pydantic models | Plan 01, Task 3 |
+| `tests/test_highlights.py` | Scoring heuristics, browse modes, category filter integration | Plan 02, Task 2 |
+| `tests/test_search.py` | Name search, type search, category filter | Plan 02, Task 2 |
+| `tests/test_spec.py` | Node pack inspection, pagination, I/O parsing | Plan 02, Task 2 |
 
 ### Sampling Rate
 - **Per task commit:** `python -m pytest tests/ -x -q`
 - **Per wave merge:** `python -m pytest tests/ -v --tb=short`
 - **Phase gate:** Full suite green before `/gsd:verify-work`
-
-### Wave 0 Gaps
-- [ ] `pyproject.toml` -- project config with pytest settings
-- [ ] `tests/conftest.py` -- shared fixtures (mock API responses, sample node data)
-- [ ] `tests/test_client.py` -- HTTP client + cache tests
-- [ ] `tests/test_highlights.py` -- scoring + mode tests
-- [ ] `tests/test_search.py` -- search + filter tests
-- [ ] `tests/test_spec.py` -- node pack inspection tests
-- [ ] `tests/test_format_detector.py` -- format detection tests
-- [ ] `tests/test_categories.py` -- category mapping tests
-- [ ] pytest + ruff config in pyproject.toml
 
 ## Open Questions
 
