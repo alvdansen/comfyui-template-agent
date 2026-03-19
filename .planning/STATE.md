@@ -87,6 +87,10 @@ Recent decisions affecting current work:
 - [Phase 04]: save_workflow uses lenient validation by default since composed workflows are drafts
 - [Phase 04]: CLI prints guidance message (not error) when no --scaffold/--file given, directing to Claude Code skill
 
+### Roadmap Evolution
+
+- Phase 6 added: Testing & Distribution — E2E testing with real workflows, install script, README, prep for sharing
+
 ### Pending Todos
 
 None yet.
