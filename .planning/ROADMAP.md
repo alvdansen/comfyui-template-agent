@@ -93,11 +93,11 @@ Plans:
   3. User can auto-extract the IO spec (inputs and outputs) from workflow JSON without manual inspection
   4. User gets prompted about thumbnail/screenshot requirements with exact format specs at the right point in the flow
   5. User can run a guided session that walks through discover, ideate, compose, validate, and document phases with context carried between steps
-**Plans**: TBD
+**Plans**: 2 plans
 
 Plans:
-- [ ] 05-01: TBD
-- [ ] 05-02: TBD
+- [ ] 05-01-PLAN.md — Documentation module: models, metadata extraction, IO spec, Notion markdown, thumbnail reminders, CLI, tests, and skill definition
+- [ ] 05-02-PLAN.md — Orchestrator: session state, phase transitions, context-aware suggestions, and comfy-flow skill definition
 
 ## Progress
 
@@ -110,7 +110,7 @@ Phases execute in numeric order: 1 > 2 > 3 > 4 > 5 > 6
 | 2. Template Intelligence | 1/2 | In Progress|  |
 | 3. Validation Engine | 0/2 | Not started | - |
 | 4. Composition | 0/3 | Not started | - |
-| 5. Documentation + Orchestration | 0/0 | Not started | - |
+| 5. Documentation + Orchestration | 0/2 | Not started | - |
 
 ### Phase 6: Testing & Distribution
 **Goal**: End-to-end testing with real workflows, install script for team onboarding, README, and prep for sharing with colleagues
