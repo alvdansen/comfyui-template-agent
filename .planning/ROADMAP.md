@@ -30,11 +30,11 @@ Decimal phases appear between their surrounding integers in numeric order.
   3. User can filter discovery results by media category (video, image, audio, 3D)
   4. User can inspect a custom node pack to see all nodes it includes with their input/output specs
   5. Project infrastructure exists: HTTP client with caching, core node whitelist data file, format detector utility
-**Plans**: TBD
+**Plans**: 2 plans
 
 Plans:
-- [ ] 01-01: TBD
-- [ ] 01-02: TBD
+- [ ] 01-01-PLAN.md — Project scaffolding, shared infrastructure, data models, and data extraction
+- [ ] 01-02-PLAN.md — Discovery modules (highlights, search, spec), skill definition, and tests
 
 ### Phase 2: Template Intelligence
 **Goal**: Users can browse existing templates, cross-reference nodes against the template library, and identify gaps worth filling
@@ -105,7 +105,7 @@ Phases execute in numeric order: 1 > 2 > 3 > 4 > 5
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Foundation + Discovery | 0/0 | Not started | - |
+| 1. Foundation + Discovery | 0/2 | Planning complete | - |
 | 2. Template Intelligence | 0/0 | Not started | - |
 | 3. Validation Engine | 0/0 | Not started | - |
 | 4. Composition | 0/0 | Not started | - |
