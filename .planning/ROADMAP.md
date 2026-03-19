@@ -76,11 +76,12 @@ Plans:
   2. User can compose a new workflow from scratch by adding nodes and connecting them, with type checking on every connection
   3. User can build workflows incrementally with validation feedback after each step (add node, connect, set parameter)
   4. All composed workflows output correct workflow format (nodes[] + links[] structure), never API format
-**Plans**: TBD
+**Plans**: 3 plans
 
 Plans:
-- [ ] 04-01: TBD
-- [ ] 04-02: TBD
+- [ ] 04-01-PLAN.md — Composition models (NodeSpec, GraphNode, GraphLink), node spec cache, and WorkflowGraph builder core
+- [ ] 04-02-PLAN.md — Scaffold operations (from_json, from_template, from_file, swap_node) and auto-layout algorithm
+- [ ] 04-03-PLAN.md — CLI entry point, save with validation, public API exports, and Claude Code skill definition
 
 ### Phase 5: Documentation + Orchestration
 **Goal**: Users can generate submission-ready documentation and run the full discover-to-document workflow as a guided session
@@ -108,5 +109,5 @@ Phases execute in numeric order: 1 > 2 > 3 > 4 > 5
 | 1. Foundation + Discovery | 1/2 | In Progress|  |
 | 2. Template Intelligence | 1/2 | In Progress|  |
 | 3. Validation Engine | 0/2 | Not started | - |
-| 4. Composition | 0/0 | Not started | - |
+| 4. Composition | 0/3 | Not started | - |
 | 5. Documentation + Orchestration | 0/0 | Not started | - |
