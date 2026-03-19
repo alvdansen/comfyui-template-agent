@@ -61,11 +61,11 @@ Plans:
   2. User can detect API nodes (Gemini, BFL, ElevenLabs, etc.) in a workflow and see which ones require auth credentials
   3. User can run a full guideline compliance check that reports violations for set/get node usage, subgraph rules, color/note conventions, and naming standards
   4. User can validate a workflow for Comfy Cloud compatibility and see a pass/fail report with specific issues listed
-**Plans**: TBD
+**Plans**: 2 plans
 
 Plans:
-- [ ] 03-01: TBD
-- [ ] 03-02: TBD
+- [ ] 03-01-PLAN.md — Validation models, rule functions, API node detection, engine with strict/lenient modes and tests
+- [ ] 03-02-PLAN.md — CLI entry point, report formatter, and Claude Code skill definition
 
 ### Phase 4: Composition
 **Goal**: Users can build valid ComfyUI workflow JSON through a type-safe builder or by scaffolding from existing templates
@@ -107,6 +107,6 @@ Phases execute in numeric order: 1 > 2 > 3 > 4 > 5
 |-------|----------------|--------|-----------|
 | 1. Foundation + Discovery | 1/2 | In Progress|  |
 | 2. Template Intelligence | 1/2 | In Progress|  |
-| 3. Validation Engine | 0/0 | Not started | - |
+| 3. Validation Engine | 0/2 | Not started | - |
 | 4. Composition | 0/0 | Not started | - |
 | 5. Documentation + Orchestration | 0/0 | Not started | - |
