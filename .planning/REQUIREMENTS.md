@@ -37,10 +37,10 @@
 
 ### Documentation
 
-- [ ] **DOCS-01**: User can auto-generate index.json metadata entry from a workflow file
-- [ ] **DOCS-02**: User can generate Notion-friendly markdown for the submission process
-- [ ] **DOCS-03**: User can auto-extract IO spec (inputs/outputs) from workflow JSON
-- [ ] **DOCS-04**: User gets reminded about thumbnail/screenshot requirements with format specs
+- [x] **DOCS-01**: User can auto-generate index.json metadata entry from a workflow file
+- [x] **DOCS-02**: User can generate Notion-friendly markdown for the submission process
+- [x] **DOCS-03**: User can auto-extract IO spec (inputs/outputs) from workflow JSON
+- [x] **DOCS-04**: User gets reminded about thumbnail/screenshot requirements with format specs
 
 ### Orchestration
 
@@ -109,10 +109,10 @@
 | VALD-02 | Phase 3 | Complete |
 | VALD-03 | Phase 3 | Complete |
 | VALD-04 | Phase 3 | Complete |
-| DOCS-01 | Phase 5 | Pending |
-| DOCS-02 | Phase 5 | Pending |
-| DOCS-03 | Phase 5 | Pending |
-| DOCS-04 | Phase 5 | Pending |
+| DOCS-01 | Phase 5 | Complete |
+| DOCS-02 | Phase 5 | Complete |
+| DOCS-03 | Phase 5 | Complete |
+| DOCS-04 | Phase 5 | Complete |
 | ORCH-01 | Phase 5 | Pending |
 | ORCH-02 | Phase 5 | Pending |
 
