@@ -1,9 +1,14 @@
 """Tests for the validation engine (VALD-01 through VALD-04)."""
 
+import json
+import tempfile
+from unittest import mock
+
 import pytest
 
 from src.validator.engine import run_validation
 from src.validator.models import Finding, Severity, ValidationReport
+from src.validator.validate import format_report, load_workflow, main
 
 # -- Inline fixtures --
 
@@ -235,6 +240,81 @@ def test_all_core_nodes_pass():
         if f.rule_id == "core_node_preference"
     ]
     assert len(custom_findings) == 0
+
+
+# -- CLI and report formatter tests --
+
+
+def test_format_report_pass():
+    """Passing report in lenient mode should show [PASS] header and per-rule pass icons."""
+    # Use lenient mode so info-level findings (naming, thumbnail, etc.) are filtered out
+    report = run_validation(WORKFLOW_ALL_CORE, mode="lenient")
+    output = format_report(report)
+    assert "Validation Report [PASS]" in output
+    assert "[PASS]" in output
+
+
+def test_format_report_fail():
+    """Failing report should show [FAIL] header and fix suggestions."""
+    report = run_validation(WORKFLOW_WITH_SET_GET)
+    output = format_report(report)
+    assert "Validation Report [FAIL]" in output
+    assert "[FAIL]" in output
+    assert "[ERROR]" in output
+    # Set/Get nodes have suggestions
+    assert "Fix:" in output
+
+
+def test_format_report_skipped():
+    """Skipped rules should show skip count."""
+    report = run_validation(WORKFLOW_ALL_CORE, ignore=["core_node_preference", "no_set_get_nodes"])
+    output = format_report(report)
+    assert "skipped via --ignore" in output
+
+
+def test_load_workflow():
+    """load_workflow should parse a JSON file."""
+    with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False) as f:
+        json.dump(WORKFLOW_ALL_CORE, f)
+        f.flush()
+        loaded = load_workflow(f.name)
+    assert loaded == WORKFLOW_ALL_CORE
+
+
+def test_load_workflow_file_not_found():
+    """load_workflow should raise FileNotFoundError for missing files."""
+    with pytest.raises(FileNotFoundError):
+        load_workflow("/nonexistent/path/workflow.json")
+
+
+def test_cli_with_file():
+    """CLI main() should run without exception on valid workflow."""
+    with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False) as f:
+        json.dump(WORKFLOW_ALL_CORE, f)
+        f.flush()
+        tmpfile = f.name
+
+    with mock.patch("sys.argv", ["prog", "--file", tmpfile, "--mode", "lenient"]):
+        with pytest.raises(SystemExit) as exc_info:
+            main()
+        # Should exit 0 (pass) for all-core workflow in lenient mode
+        assert exc_info.value.code == 0
+
+
+def test_cli_ignore_flag():
+    """CLI --ignore should suppress specified rules in output."""
+    with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False) as f:
+        json.dump(WORKFLOW_WITH_CUSTOM, f)
+        f.flush()
+        tmpfile = f.name
+
+    with mock.patch("sys.argv", ["prog", "--file", tmpfile, "--ignore", "core_node_preference", "no_set_get_nodes"]):
+        with mock.patch("builtins.print") as mock_print:
+            with pytest.raises(SystemExit):
+                main()
+            printed = mock_print.call_args[0][0]
+            assert "core_node_preference" not in printed or "skipped" in printed
+            assert "skipped via --ignore" in printed
 
 
 # -- Helpers --
