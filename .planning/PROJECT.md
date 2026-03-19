@@ -12,11 +12,15 @@ Template creators can go from "what should we build next?" to "here's a cloud-te
 
 ### Validated
 
-(None yet — ship to validate)
+- ✓ Discover and surface trending/new/rising/popular/random nodes from the ComfyUI registry — Phase 1
+- ✓ Search nodes by name, category, or input/output type — Phase 1
+- ✓ Filter discovery by media category (video, image, audio, 3D) — Phase 1
+- ✓ View what nodes a custom node pack includes — Phase 1
+- ✓ Random node suggestions for idea sparking — Phase 1
 
 ### Active
 
-- [ ] Discover and surface trending/new/rising nodes from the ComfyUI registry (comfy-tip capabilities)
+- [ ] Search and browse the existing 400+ template library (Comfy-Org/workflow_templates) to check what's already covered
 - [ ] Search and browse the existing 400+ template library (Comfy-Org/workflow_templates) to check what's already covered
 - [ ] Cross-reference: given a node or node pack, check if it's already used in an existing template
 - [ ] Ideate new template concepts based on community trends, uncovered nodes, and gaps in the current library
@@ -68,4 +72,4 @@ Template creators can go from "what should we build next?" to "here's a cloud-te
 | Scaffold + compose dual path for workflow creation | Novel use cases need from-scratch composition; variations are faster from templates | — Pending |
 
 ---
-*Last updated: 2026-03-18 after initialization*
+*Last updated: 2026-03-19 after Phase 1 completion*
