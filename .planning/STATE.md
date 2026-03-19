@@ -2,14 +2,14 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: unknown
-stopped_at: Phase 2 context gathered
-last_updated: "2026-03-19T01:27:31.571Z"
+status: executing
+stopped_at: Completed 02-01-PLAN.md
+last_updated: "2026-03-19T02:09:06.095Z"
 progress:
   total_phases: 5
   completed_phases: 1
-  total_plans: 2
-  completed_plans: 2
+  total_plans: 4
+  completed_plans: 3
 ---
 
 # Project State
@@ -19,11 +19,11 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-18)
 
 **Core value:** Template creators can go from "what should we build next?" to "here's a cloud-tested workflow with submission docs" in a single guided session
-**Current focus:** Phase 01 — foundation-discovery
+**Current focus:** Phase 02 — template-intelligence
 
 ## Current Position
 
-Phase: 01 (foundation-discovery) — EXECUTING
+Phase: 02 (template-intelligence) — EXECUTING
 Plan: 2 of 2
 
 ## Performance Metrics
@@ -47,6 +47,7 @@ Plan: 2 of 2
 
 *Updated after each plan completion*
 | Phase 01 P02 | 7min | 3 tasks | 7 files |
+| Phase 02 P01 | 4min | 3 tasks | 10 files |
 
 ## Accumulated Context
 
@@ -63,6 +64,9 @@ Recent decisions affecting current work:
 - [01-01]: httpx follow_redirects=True needed for GitHub API (301 on /contents endpoint)
 - [Phase 01]: Module-level DiskCache singletons for simplicity in registry modules
 - [Phase 01]: search_by_type uses two-step approach: search packs then verify I/O via comfy-nodes
+- [02-01]: get_github_client() added to http.py for GitHub CDN requests (per CONTEXT.md locked decision)
+- [02-01]: Pack-level cross-ref from requiresCustomNodes (fast), node-level from workflow JSONs (thorough)
+- [02-01]: Fuzzy matching on index keys when exact match returns nothing
 
 ### Pending Todos
 
@@ -76,5 +80,5 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-19T01:27:31.570Z
-Stopped at: Phase 2 context gathered
+Last session: 2026-03-19T02:08:15Z
+Stopped at: Completed 02-01-PLAN.md

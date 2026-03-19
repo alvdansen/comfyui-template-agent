@@ -15,9 +15,9 @@
 
 ### Template Intelligence
 
-- [ ] **TMPL-01**: User can search existing 400+ templates by name, category, or model
-- [ ] **TMPL-02**: User can view template details (nodes used, models, custom node dependencies)
-- [ ] **TMPL-03**: User can check if a specific node or pack is already used in an existing template
+- [x] **TMPL-01**: User can search existing 400+ templates by name, category, or model
+- [x] **TMPL-02**: User can view template details (nodes used, models, custom node dependencies)
+- [x] **TMPL-03**: User can check if a specific node or pack is already used in an existing template
 - [ ] **TMPL-04**: User can generate gap analysis showing popular nodes not covered by any template
 - [ ] **TMPL-05**: User can view template coverage report by category
 
@@ -89,9 +89,9 @@
 | DISC-03 | Phase 1 | Complete |
 | DISC-04 | Phase 1 | Complete |
 | DISC-05 | Phase 1 | Complete |
-| TMPL-01 | Phase 2 | Pending |
-| TMPL-02 | Phase 2 | Pending |
-| TMPL-03 | Phase 2 | Pending |
+| TMPL-01 | Phase 2 | Complete |
+| TMPL-02 | Phase 2 | Complete |
+| TMPL-03 | Phase 2 | Complete |
 | TMPL-04 | Phase 2 | Pending |
 | TMPL-05 | Phase 2 | Pending |
 | COMP-01 | Phase 4 | Pending |
