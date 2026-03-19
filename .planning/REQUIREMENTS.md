@@ -23,9 +23,9 @@
 
 ### Composition
 
-- [ ] **COMP-01**: User can scaffold a new workflow from an existing template and modify/extend it
+- [x] **COMP-01**: User can scaffold a new workflow from an existing template and modify/extend it
 - [x] **COMP-02**: User can compose valid workflow JSON from scratch via type-safe graph builder
-- [ ] **COMP-03**: User can compose workflows incrementally with per-step validation
+- [x] **COMP-03**: User can compose workflows incrementally with per-step validation
 - [x] **COMP-04**: Composed workflows use correct workflow format (not API format)
 
 ### Validation
@@ -94,9 +94,9 @@
 | TMPL-03 | Phase 2 | Complete |
 | TMPL-04 | Phase 2 | Complete |
 | TMPL-05 | Phase 2 | Complete |
-| COMP-01 | Phase 4 | Pending |
+| COMP-01 | Phase 4 | Complete |
 | COMP-02 | Phase 4 | Complete |
-| COMP-03 | Phase 4 | Pending |
+| COMP-03 | Phase 4 | Complete |
 | COMP-04 | Phase 4 | Complete |
 | VALD-01 | Phase 3 | Complete |
 | VALD-02 | Phase 3 | Complete |

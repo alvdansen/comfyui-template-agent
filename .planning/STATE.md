@@ -3,13 +3,13 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: unknown
-stopped_at: Completed 04-01-PLAN.md
-last_updated: "2026-03-19T03:58:16.442Z"
+stopped_at: Completed 04-02-PLAN.md
+last_updated: "2026-03-19T04:18:00.000Z"
 progress:
   total_phases: 5
   completed_phases: 3
   total_plans: 9
-  completed_plans: 7
+  completed_plans: 8
 ---
 
 # Project State
@@ -24,7 +24,7 @@ See: .planning/PROJECT.md (updated 2026-03-18)
 ## Current Position
 
 Phase: 04 (composition) — EXECUTING
-Plan: 2 of 3
+Plan: 3 of 3
 
 ## Performance Metrics
 
@@ -52,6 +52,7 @@ Plan: 2 of 3
 | Phase 03 P01 | 3min | 2 tasks | 7 files |
 | Phase 03 P02 | 2min | 2 tasks | 3 files |
 | Phase 04 P01 | 4min | 2 tasks | 6 files |
+| Phase 04 P02 | 12min | 2 tasks | 4 files |
 
 ## Accumulated Context
 
@@ -79,6 +80,9 @@ Recent decisions affecting current work:
 - [03-01]: Note color darkness check uses #0 prefix heuristic
 - [03-02]: Used lenient mode in pass-report test since info-level rules always fire on minimal workflows
 - [Phase 04]: NodeSpecCache is pass-through: Claude fetches MCP specs and passes raw dicts in
+- [04-02]: from_json supports both array and object link formats for maximum compatibility
+- [04-02]: swap_node only removes connections when spec is provided (graceful degradation)
+- [04-02]: auto_layout uses DFS longest-path layer assignment with cycle detection
 
 ### Pending Todos
 
@@ -92,5 +96,5 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-19T03:58:16.440Z
-Stopped at: Completed 04-01-PLAN.md
+Last session: 2026-03-19T04:18:00.000Z
+Stopped at: Completed 04-02-PLAN.md
