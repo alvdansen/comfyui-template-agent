@@ -44,8 +44,8 @@
 
 ### Orchestration
 
-- [ ] **ORCH-01**: User can run guided phase flow: discover > ideate > compose > validate > document
-- [ ] **ORCH-02**: Each phase provides context-aware suggestions based on previous phase output
+- [x] **ORCH-01**: User can run guided phase flow: discover > ideate > compose > validate > document
+- [x] **ORCH-02**: Each phase provides context-aware suggestions based on previous phase output
 
 ### Testing & Distribution
 
@@ -113,8 +113,8 @@
 | DOCS-02 | Phase 5 | Complete |
 | DOCS-03 | Phase 5 | Complete |
 | DOCS-04 | Phase 5 | Complete |
-| ORCH-01 | Phase 5 | Pending |
-| ORCH-02 | Phase 5 | Pending |
+| ORCH-01 | Phase 5 | Complete |
+| ORCH-02 | Phase 5 | Complete |
 
 **Coverage:**
 - v1 requirements: 24 total
