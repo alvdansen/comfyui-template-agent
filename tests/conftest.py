@@ -83,3 +83,136 @@ def tmp_cache_dir(tmp_path):
     cache_dir = tmp_path / "cache"
     cache_dir.mkdir()
     return cache_dir
+
+
+@pytest.fixture
+def sample_index_data() -> list:
+    """List of TemplateCategory dicts matching index.json nested structure."""
+    return [
+        {
+            "moduleName": "image_gen",
+            "category": "image",
+            "icon": "image-icon",
+            "title": "Image Generation",
+            "type": "category",
+            "isEssential": True,
+            "templates": [
+                {
+                    "name": "flux-schnell-basic",
+                    "title": "Flux Schnell Basic",
+                    "description": "Generate images with Flux Schnell model",
+                    "mediaType": "image",
+                    "mediaSubtype": "",
+                    "tags": ["flux", "image", "fast"],
+                    "models": ["flux-schnell"],
+                    "requiresCustomNodes": ["comfyui-flux-pack"],
+                    "date": "2025-06-01",
+                    "openSource": True,
+                    "size": 12,
+                    "vram": 8,
+                    "usage": 5000,
+                    "searchRank": 1,
+                    "username": "comfy",
+                    "io": {"inputs": [], "outputs": []},
+                    "thumbnail": [],
+                },
+                {
+                    "name": "sdxl-upscale",
+                    "title": "SDXL Upscale Pipeline",
+                    "description": "Upscale images using SDXL and ControlNet",
+                    "mediaType": "image",
+                    "tags": ["sdxl", "upscale", "controlnet"],
+                    "models": ["sdxl-base-1.0", "controlnet-tile"],
+                    "requiresCustomNodes": ["comfyui-controlnet-aux"],
+                    "date": "2025-07-15",
+                    "usage": 3000,
+                    "username": "artist",
+                    "io": {"inputs": [], "outputs": []},
+                    "thumbnail": [],
+                },
+            ],
+        },
+        {
+            "moduleName": "video_gen",
+            "category": "video",
+            "icon": "video-icon",
+            "title": "Video Generation",
+            "type": "category",
+            "isEssential": False,
+            "templates": [
+                {
+                    "name": "wan-t2v-basic",
+                    "title": "Wan Text to Video",
+                    "description": "Generate videos from text using Wan 2.1",
+                    "mediaType": "video",
+                    "tags": ["wan", "video", "t2v"],
+                    "models": ["wan-2.1-t2v-14b"],
+                    "requiresCustomNodes": ["comfyui-flux-pack"],
+                    "date": "2026-01-10",
+                    "usage": 8000,
+                    "username": "comfy",
+                    "io": {"inputs": [], "outputs": []},
+                    "thumbnail": [],
+                },
+                {
+                    "name": "hunyuan-i2v.app",
+                    "title": "HunyuanVideo Image to Video",
+                    "description": "Convert images to video with HunyuanVideo",
+                    "mediaType": "video",
+                    "tags": ["hunyuan", "video", "i2v"],
+                    "models": ["hunyuan-video"],
+                    "requiresCustomNodes": [],
+                    "date": "2026-02-20",
+                    "usage": 2000,
+                    "username": "researcher",
+                    "io": {"inputs": [], "outputs": []},
+                    "thumbnail": [],
+                },
+            ],
+        },
+    ]
+
+
+@pytest.fixture
+def sample_template_workflow_json() -> dict:
+    """Workflow dict with standard top-level nodes (no subgraphs)."""
+    return {
+        "nodes": [
+            {"id": 1, "type": "KSampler", "pos": [100, 200]},
+            {"id": 2, "type": "CLIPTextEncode", "pos": [200, 200]},
+            {"id": 3, "type": "SaveImage", "pos": [300, 200]},
+        ],
+        "links": [],
+    }
+
+
+@pytest.fixture
+def sample_workflow_with_subgraphs() -> dict:
+    """Workflow dict with UUID subgraph references and definitions."""
+    return {
+        "nodes": [
+            {"id": 1, "type": "SaveImage", "pos": [500, 200]},
+            {
+                "id": 2,
+                "type": "ef10a538-17cf-46fb-930c-5460c4cf7f0e",
+                "pos": [100, 200],
+            },
+        ],
+        "links": [],
+        "definitions": {
+            "subgraphs": [
+                {
+                    "id": "ef10a538-17cf-46fb-930c-5460c4cf7f0e",
+                    "nodes": [
+                        {"id": 10, "type": "KSampler", "pos": [50, 50]},
+                        {"id": 11, "type": "VAEDecode", "pos": [150, 50]},
+                        {
+                            "id": 12,
+                            "type": "aaaa1111-bbbb-cccc-dddd-eeee2222ffff",
+                            "pos": [250, 50],
+                        },
+                    ],
+                }
+            ]
+        },
+    }
