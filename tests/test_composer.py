@@ -930,3 +930,219 @@ class TestAutoLayout:
         ys = [g.get_node(nid).pos[1] for nid in [1, 2, 3]]
         assert all(x == 100 for x in xs), "All disconnected nodes in layer 0"
         assert len(set(ys)) == 3, "All should have distinct y positions"
+
+
+# ── Plan 03 Task 1: CLI, save_workflow, integration ───────────────────────
+
+
+class TestSaveWorkflow:
+    """Test save_workflow writes valid JSON and returns report."""
+
+    def test_save_workflow_writes_json_file(
+        self, tmp_path, sample_ksampler_spec, sample_vaedecode_spec
+    ):
+        from src.composer.compose import save_workflow
+        from src.composer.graph import WorkflowGraph
+
+        cache = _build_cache(
+            ("KSampler", sample_ksampler_spec),
+            ("VAEDecode", sample_vaedecode_spec),
+        )
+        g = WorkflowGraph(specs=cache)
+        g.add_node("KSampler")
+        g.add_node("VAEDecode")
+
+        out = tmp_path / "out.json"
+        result = save_workflow(g, str(out), validate=False)
+        assert out.exists()
+
+        import json
+
+        data = json.loads(out.read_text())
+        assert isinstance(data["nodes"], list)
+        assert data["version"] == 0.4
+        assert result["path"] == str(out)
+        assert result["node_count"] == 2
+
+    def test_save_workflow_output_is_workflow_format(
+        self, tmp_path, sample_ksampler_spec, sample_vaedecode_spec
+    ):
+        from src.composer.compose import save_workflow
+        from src.composer.graph import WorkflowGraph
+        from src.shared.format_detector import detect_format
+
+        import json
+
+        cache = _build_cache(
+            ("KSampler", sample_ksampler_spec),
+            ("VAEDecode", sample_vaedecode_spec),
+        )
+        g = WorkflowGraph(specs=cache)
+        g.add_node("KSampler")
+        g.add_node("VAEDecode")
+
+        out = tmp_path / "out.json"
+        save_workflow(g, str(out), validate=False)
+        data = json.loads(out.read_text())
+        assert detect_format(data) == "workflow"
+
+    def test_save_workflow_with_validation(
+        self, tmp_path, sample_ksampler_spec, sample_vaedecode_spec
+    ):
+        from src.composer.compose import save_workflow
+        from src.composer.graph import WorkflowGraph
+
+        cache = _build_cache(
+            ("KSampler", sample_ksampler_spec),
+            ("VAEDecode", sample_vaedecode_spec),
+        )
+        g = WorkflowGraph(specs=cache)
+        g.add_node("KSampler")
+        g.add_node("VAEDecode")
+
+        out = tmp_path / "out.json"
+        result = save_workflow(g, str(out), validate=True)
+        assert result["validation"] is not None
+        assert "passed" in result["validation"]
+        assert "score" in result["validation"]
+
+    def test_save_workflow_without_validation(
+        self, tmp_path, sample_ksampler_spec
+    ):
+        from src.composer.compose import save_workflow
+        from src.composer.graph import WorkflowGraph
+
+        cache = _build_cache(("KSampler", sample_ksampler_spec))
+        g = WorkflowGraph(specs=cache)
+        g.add_node("KSampler")
+
+        out = tmp_path / "out.json"
+        result = save_workflow(g, str(out), validate=False)
+        assert result["validation"] is None
+
+
+class TestCLIMain:
+    """Test CLI main function."""
+
+    def test_cli_scaffold_writes_output(self, tmp_path, monkeypatch):
+        from src.composer import compose as compose_mod
+
+        mock_wf = {
+            "nodes": [
+                {
+                    "id": 1,
+                    "type": "KSampler",
+                    "pos": [100, 200],
+                    "inputs": [],
+                    "outputs": [],
+                    "properties": {},
+                    "widgets_values": [],
+                },
+            ],
+            "links": [],
+        }
+        monkeypatch.setattr(
+            compose_mod,
+            "scaffold_from_template",
+            lambda name, **kw: __import__(
+                "src.composer.graph", fromlist=["WorkflowGraph"]
+            ).WorkflowGraph.from_json(mock_wf),
+        )
+
+        out = tmp_path / "cli_out.json"
+        monkeypatch.setattr(
+            "sys.argv",
+            ["compose", "--scaffold", "test-template", "--output", str(out), "--no-validate"],
+        )
+        compose_mod.main()
+        assert out.exists()
+
+    def test_cli_file_writes_output(self, tmp_path, monkeypatch):
+        import json
+
+        from src.composer import compose as compose_mod
+
+        wf = {
+            "nodes": [
+                {
+                    "id": 1,
+                    "type": "KSampler",
+                    "pos": [0, 0],
+                    "inputs": [],
+                    "outputs": [],
+                    "properties": {},
+                    "widgets_values": [],
+                },
+            ],
+            "links": [],
+        }
+        src_file = tmp_path / "input.json"
+        src_file.write_text(json.dumps(wf))
+
+        out = tmp_path / "cli_out.json"
+        monkeypatch.setattr(
+            "sys.argv",
+            ["compose", "--file", str(src_file), "--output", str(out), "--no-validate"],
+        )
+        compose_mod.main()
+        assert out.exists()
+
+
+class TestFullPipeline:
+    """Test full pipeline: build graph from scratch, save, validate."""
+
+    def test_full_pipeline_build_save_validate(
+        self, tmp_path, sample_ksampler_spec, sample_vaedecode_spec
+    ):
+        """Build a 3-node graph, connect, save, validate -- all passes."""
+        from src.composer.compose import save_workflow
+        from src.composer.graph import WorkflowGraph
+        from src.composer.models import NodeSpec, InputSpec, OutputSpec
+        from src.shared.format_detector import detect_format
+
+        import json
+
+        # Build a SaveImage-like spec manually
+        save_spec = NodeSpec(
+            name="SaveImage",
+            display_name="Save Image",
+            category="image",
+            inputs_required={
+                "images": InputSpec(name="images", type="IMAGE", is_widget=False),
+            },
+            outputs=[],
+        )
+
+        cache = _build_cache(
+            ("KSampler", sample_ksampler_spec),
+            ("VAEDecode", sample_vaedecode_spec),
+        )
+        cache.put("SaveImage", save_spec)
+
+        g = WorkflowGraph(specs=cache)
+        ks_id = g.add_node("KSampler")
+        vae_id = g.add_node("VAEDecode")
+        save_id = g.add_node("SaveImage")
+
+        # KSampler -> VAEDecode (LATENT)
+        g.connect(ks_id, 0, vae_id, "samples")
+        # VAEDecode -> SaveImage (IMAGE)
+        g.connect(vae_id, 0, save_id, "images")
+
+        out = tmp_path / "pipeline.json"
+        result = save_workflow(g, str(out), validate=True, layout=True)
+
+        # File exists and is valid JSON
+        assert out.exists()
+        data = json.loads(out.read_text())
+
+        # Output is workflow format
+        assert detect_format(data) == "workflow"
+
+        # Counts correct
+        assert result["node_count"] == 3
+        assert result["link_count"] == 2
+
+        # Validation ran
+        assert result["validation"] is not None
+        assert "passed" in result["validation"]
