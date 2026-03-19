@@ -3,13 +3,13 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: unknown
-stopped_at: Completed 04-02-PLAN.md
-last_updated: "2026-03-19T04:18:00.000Z"
+stopped_at: Completed 04-03-PLAN.md
+last_updated: "2026-03-19T04:28:19.068Z"
 progress:
   total_phases: 5
-  completed_phases: 3
+  completed_phases: 4
   total_plans: 9
-  completed_plans: 8
+  completed_plans: 9
 ---
 
 # Project State
@@ -53,6 +53,7 @@ Plan: 3 of 3
 | Phase 03 P02 | 2min | 2 tasks | 3 files |
 | Phase 04 P01 | 4min | 2 tasks | 6 files |
 | Phase 04 P02 | 12min | 2 tasks | 4 files |
+| Phase 04 P03 | 6min | 2 tasks | 4 files |
 
 ## Accumulated Context
 
@@ -83,6 +84,8 @@ Recent decisions affecting current work:
 - [04-02]: from_json supports both array and object link formats for maximum compatibility
 - [04-02]: swap_node only removes connections when spec is provided (graceful degradation)
 - [04-02]: auto_layout uses DFS longest-path layer assignment with cycle detection
+- [Phase 04]: save_workflow uses lenient validation by default since composed workflows are drafts
+- [Phase 04]: CLI prints guidance message (not error) when no --scaffold/--file given, directing to Claude Code skill
 
 ### Pending Todos
 
@@ -96,5 +99,5 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-19T04:18:00.000Z
-Stopped at: Completed 04-02-PLAN.md
+Last session: 2026-03-19T04:28:19.066Z
+Stopped at: Completed 04-03-PLAN.md
