@@ -19,7 +19,7 @@ created: 2026-03-19
 |----------|-------|
 | **Framework** | pytest 8.x (from Phase 1) |
 | **Config file** | pyproject.toml (exists) |
-| **Quick run command** | `python -m pytest tests/test_templates.py tests/test_gap_analysis.py -x -q` |
+| **Quick run command** | `python -m pytest tests/test_templates.py tests/test_coverage.py -x -q` |
 | **Full suite command** | `python -m pytest tests/ -v --tb=short` |
 | **Estimated runtime** | ~15 seconds |
 
@@ -40,9 +40,9 @@ created: 2026-03-19
 |---------|------|------|-------------|-----------|-------------------|--------|
 | 2-01-01 | 01 | 1 | TMPL-01 | integration | `pytest tests/test_templates.py -k search` | ⬜ pending |
 | 2-01-02 | 01 | 1 | TMPL-02 | integration | `pytest tests/test_templates.py -k detail` | ⬜ pending |
-| 2-01-03 | 01 | 1 | TMPL-03 | integration | `pytest tests/test_templates.py -k cross_ref` | ⬜ pending |
-| 2-02-01 | 02 | 2 | TMPL-04 | integration | `pytest tests/test_gap_analysis.py -k gap` | ⬜ pending |
-| 2-02-02 | 02 | 2 | TMPL-05 | integration | `pytest tests/test_gap_analysis.py -k coverage` | ⬜ pending |
+| 2-01-03 | 01 | 1 | TMPL-03 | integration | `pytest tests/test_cross_ref.py -k cross_ref` | ⬜ pending |
+| 2-02-01 | 02 | 2 | TMPL-04 | integration | `pytest tests/test_coverage.py -k gap` | ⬜ pending |
+| 2-02-02 | 02 | 2 | TMPL-05 | integration | `pytest tests/test_coverage.py -k coverage` | ⬜ pending |
 
 *Status: ⬜ pending · ✅ green · ❌ red · ⚠️ flaky*
 
@@ -51,7 +51,7 @@ created: 2026-03-19
 ## Wave 0 Requirements
 
 - [ ] `tests/test_templates.py` — stubs for TMPL-01, TMPL-02, TMPL-03
-- [ ] `tests/test_gap_analysis.py` — stubs for TMPL-04, TMPL-05
+- [ ] `tests/test_coverage.py` — stubs for TMPL-04, TMPL-05
 
 ---
 
