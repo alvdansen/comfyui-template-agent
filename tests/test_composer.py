@@ -596,3 +596,260 @@ class TestCheckTypeCompatibility:
         from src.composer.graph import check_type_compatibility
 
         assert check_type_compatibility("IMAGE", "*") is True
+
+
+# ── Plan 02 Task 1: from_json, swap_node, scaffold ────────────────────────
+
+
+class TestFromJson:
+    """Test WorkflowGraph.from_json classmethod."""
+
+    def test_from_json_parses_nodes_and_links(self):
+        from src.composer.graph import WorkflowGraph
+
+        data = {
+            "nodes": [
+                {
+                    "id": 1,
+                    "type": "KSampler",
+                    "pos": [100, 200],
+                    "size": [315, 170],
+                    "flags": {},
+                    "order": 0,
+                    "mode": 0,
+                    "inputs": [{"name": "model", "type": "MODEL", "link": None}],
+                    "outputs": [{"name": "LATENT", "type": "LATENT", "links": [1]}],
+                    "properties": {"Node name for S&R": "KSampler"},
+                    "widgets_values": [42, 20, 8.0, "euler", "normal"],
+                },
+                {
+                    "id": 2,
+                    "type": "VAEDecode",
+                    "pos": [300, 200],
+                    "size": [315, 170],
+                    "flags": {},
+                    "order": 1,
+                    "mode": 0,
+                    "inputs": [{"name": "samples", "type": "LATENT", "link": 1}],
+                    "outputs": [{"name": "IMAGE", "type": "IMAGE", "links": []}],
+                    "properties": {"Node name for S&R": "VAEDecode"},
+                    "widgets_values": [],
+                },
+            ],
+            "links": [[1, 1, 0, 2, 0, "LATENT"]],
+            "groups": [],
+            "config": {},
+            "extra": {},
+            "version": 0.4,
+        }
+        g = WorkflowGraph.from_json(data)
+        assert 1 in g._nodes
+        assert 2 in g._nodes
+        assert len(g._links) == 1
+        assert g._nodes[1].type == "KSampler"
+        assert g._nodes[2].type == "VAEDecode"
+
+    def test_from_json_deep_copy(self):
+        from src.composer.graph import WorkflowGraph
+
+        data = {
+            "nodes": [
+                {
+                    "id": 1,
+                    "type": "KSampler",
+                    "pos": [100, 200],
+                    "inputs": [],
+                    "outputs": [{"name": "LATENT", "type": "LATENT", "links": []}],
+                    "properties": {},
+                    "widgets_values": [42],
+                },
+            ],
+            "links": [],
+        }
+        g = WorkflowGraph.from_json(data)
+        # Modify graph -- original dict should be unaffected
+        g._nodes[1].pos = [999, 999]
+        assert data["nodes"][0]["pos"] == [100, 200]
+
+    def test_from_json_preserves_subgraphs(self, sample_workflow_with_subgraphs):
+        from src.composer.graph import WorkflowGraph
+
+        g = WorkflowGraph.from_json(sample_workflow_with_subgraphs)
+        assert len(g._definitions["subgraphs"]) == 1
+        assert g._definitions["subgraphs"][0]["id"] == "ef10a538-17cf-46fb-930c-5460c4cf7f0e"
+
+    def test_from_json_sets_next_ids_correctly(self):
+        from src.composer.graph import WorkflowGraph
+
+        data = {
+            "nodes": [
+                {"id": 5, "type": "A", "pos": [0, 0], "inputs": [], "outputs": [], "properties": {}, "widgets_values": []},
+                {"id": 10, "type": "B", "pos": [0, 0], "inputs": [], "outputs": [], "properties": {}, "widgets_values": []},
+            ],
+            "links": [[3, 5, 0, 10, 0, "IMAGE"], [7, 10, 0, 5, 0, "IMAGE"]],
+        }
+        g = WorkflowGraph.from_json(data)
+        assert g._next_node_id == 11  # max(5,10) + 1
+        assert g._next_link_id == 8  # max(3,7) + 1
+
+
+class TestSwapNode:
+    """Test WorkflowGraph.swap_node method."""
+
+    def test_swap_node_updates_type_and_snr(self):
+        from src.composer.graph import WorkflowGraph
+
+        data = {
+            "nodes": [
+                {
+                    "id": 1,
+                    "type": "KSampler",
+                    "pos": [100, 200],
+                    "inputs": [],
+                    "outputs": [{"name": "LATENT", "type": "LATENT", "links": []}],
+                    "properties": {"Node name for S&R": "KSampler"},
+                    "widgets_values": [42],
+                },
+            ],
+            "links": [],
+        }
+        g = WorkflowGraph.from_json(data)
+        g.swap_node(1, "KSamplerAdvanced")
+        assert g._nodes[1].type == "KSamplerAdvanced"
+        assert g._nodes[1].properties["Node name for S&R"] == "KSamplerAdvanced"
+
+    def test_swap_node_preserves_compatible_connections(self):
+        from src.composer.graph import WorkflowGraph
+        from src.composer.models import NodeSpec, OutputSpec
+
+        data = {
+            "nodes": [
+                {
+                    "id": 1,
+                    "type": "NodeA",
+                    "pos": [0, 0],
+                    "inputs": [],
+                    "outputs": [{"name": "LATENT", "type": "LATENT", "links": [1]}],
+                    "properties": {},
+                    "widgets_values": [],
+                },
+                {
+                    "id": 2,
+                    "type": "NodeB",
+                    "pos": [200, 0],
+                    "inputs": [{"name": "samples", "type": "LATENT", "link": 1}],
+                    "outputs": [],
+                    "properties": {},
+                    "widgets_values": [],
+                },
+            ],
+            "links": [[1, 1, 0, 2, 0, "LATENT"]],
+        }
+        g = WorkflowGraph.from_json(data)
+        # Swap NodeA to NewNodeA which still outputs LATENT
+        new_spec = NodeSpec(
+            name="NewNodeA",
+            outputs=[OutputSpec(name="LATENT", type="LATENT")],
+        )
+        g.swap_node(1, "NewNodeA", spec=new_spec)
+        # Connection should be preserved
+        assert len(g._links) == 1
+
+    def test_swap_node_removes_incompatible_connections(self):
+        from src.composer.graph import WorkflowGraph
+        from src.composer.models import NodeSpec, OutputSpec
+
+        data = {
+            "nodes": [
+                {
+                    "id": 1,
+                    "type": "NodeA",
+                    "pos": [0, 0],
+                    "inputs": [],
+                    "outputs": [{"name": "LATENT", "type": "LATENT", "links": [1]}],
+                    "properties": {},
+                    "widgets_values": [],
+                },
+                {
+                    "id": 2,
+                    "type": "NodeB",
+                    "pos": [200, 0],
+                    "inputs": [{"name": "samples", "type": "LATENT", "link": 1}],
+                    "outputs": [],
+                    "properties": {},
+                    "widgets_values": [],
+                },
+            ],
+            "links": [[1, 1, 0, 2, 0, "LATENT"]],
+        }
+        g = WorkflowGraph.from_json(data)
+        # Swap NodeA to something that outputs IMAGE instead of LATENT
+        new_spec = NodeSpec(
+            name="NewNodeA",
+            outputs=[OutputSpec(name="IMAGE", type="IMAGE")],
+        )
+        g.swap_node(1, "NewNodeA", spec=new_spec)
+        # Incompatible connection should be removed
+        assert len(g._links) == 0
+        assert g._nodes[2].inputs[0]["link"] is None
+
+
+class TestScaffoldFromTemplate:
+    """Test scaffold_from_template function."""
+
+    def test_scaffold_from_template_returns_graph(self, monkeypatch):
+        from src.composer import scaffold
+        from src.composer.graph import WorkflowGraph
+
+        mock_wf = {
+            "nodes": [
+                {"id": 1, "type": "KSampler", "pos": [100, 200], "inputs": [], "outputs": [], "properties": {}, "widgets_values": []},
+            ],
+            "links": [],
+        }
+        monkeypatch.setattr(scaffold, "fetch_workflow_json", lambda name, **kw: mock_wf)
+        g = scaffold.scaffold_from_template("flux-schnell-basic")
+        assert isinstance(g, WorkflowGraph)
+        assert 1 in g._nodes
+
+    def test_scaffold_from_template_raises_on_not_found(self, monkeypatch):
+        from src.composer import scaffold
+
+        monkeypatch.setattr(scaffold, "fetch_workflow_json", lambda name, **kw: None)
+        with pytest.raises(ValueError, match="not found"):
+            scaffold.scaffold_from_template("nonexistent-template")
+
+
+class TestScaffoldFromFile:
+    """Test scaffold_from_file function."""
+
+    def test_scaffold_from_file_loads_workflow(self, tmp_path):
+        import json
+
+        from src.composer.graph import WorkflowGraph
+        from src.composer.scaffold import scaffold_from_file
+
+        wf = {
+            "nodes": [
+                {"id": 1, "type": "KSampler", "pos": [0, 0], "inputs": [], "outputs": [], "properties": {}, "widgets_values": []},
+            ],
+            "links": [],
+        }
+        fp = tmp_path / "test.json"
+        fp.write_text(json.dumps(wf))
+        g = scaffold_from_file(str(fp))
+        assert isinstance(g, WorkflowGraph)
+        assert 1 in g._nodes
+
+    def test_scaffold_from_file_rejects_api_format(self, tmp_path):
+        import json
+
+        from src.composer.scaffold import scaffold_from_file
+
+        api_data = {
+            "3": {"class_type": "KSampler", "inputs": {"seed": 42}},
+        }
+        fp = tmp_path / "api.json"
+        fp.write_text(json.dumps(api_data))
+        with pytest.raises(ValueError, match="not workflow format"):
+            scaffold_from_file(str(fp))
