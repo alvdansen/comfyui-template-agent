@@ -18,11 +18,13 @@ Template creators can go from "what should we build next?" to "here's a cloud-te
 - ✓ View what nodes a custom node pack includes — Phase 1
 - ✓ Random node suggestions for idea sparking — Phase 1
 
+- ✓ Search and browse the existing 400+ template library to check what's already covered — Phase 2
+- ✓ Cross-reference: given a node or node pack, check if it's already used in an existing template — Phase 2
+- ✓ Gap analysis: identify popular nodes not covered by any template — Phase 2
+- ✓ Template coverage reporting by category — Phase 2
+
 ### Active
 
-- [ ] Search and browse the existing 400+ template library (Comfy-Org/workflow_templates) to check what's already covered
-- [ ] Search and browse the existing 400+ template library (Comfy-Org/workflow_templates) to check what's already covered
-- [ ] Cross-reference: given a node or node pack, check if it's already used in an existing template
 - [ ] Ideate new template concepts based on community trends, uncovered nodes, and gaps in the current library
 - [ ] Compose valid ComfyUI workflow JSON from scratch for novel use cases (node-aware, type-safe connections)
 - [ ] Scaffold workflows from existing templates and adapt/extend for new use cases
@@ -72,4 +74,4 @@ Template creators can go from "what should we build next?" to "here's a cloud-te
 | Scaffold + compose dual path for workflow creation | Novel use cases need from-scratch composition; variations are faster from templates | — Pending |
 
 ---
-*Last updated: 2026-03-19 after Phase 1 completion*
+*Last updated: 2026-03-19 after Phase 2 completion*
