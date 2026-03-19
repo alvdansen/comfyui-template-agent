@@ -113,7 +113,7 @@ Phases execute in numeric order: 1 > 2 > 3 > 4 > 5 > 6
 | 5. Documentation + Orchestration | 0/2 | Not started | - |
 
 ### Phase 6: Testing & Distribution
-**Goal**: End-to-end testing with real workflows, install script for team onboarding, README, and prep for sharing with colleagues
+**Goal**: End-to-end testing with real workflows, skill quality audit against Claude Code best practices, install script for team onboarding, README, and prep for sharing with colleagues
 **Depends on**: Phase 5
 **Requirements**: TEST-01, TEST-02, TEST-03, TEST-04
 **Success Criteria** (what must be TRUE):
@@ -121,8 +121,9 @@ Phases execute in numeric order: 1 > 2 > 3 > 4 > 5 > 6
   2. Install script sets up skills, symlinks, and dependencies for a new team member
   3. README documents all skills, setup instructions, and usage examples
   4. Repo is clean, .gitignore correct, no secrets or temp files committed
-**Plans**: TBD
+**Plans**: 3 plans
 
 Plans:
-- [ ] 06-01: TBD
-- [ ] 06-02: TBD
+- [ ] 06-01-PLAN.md — Skill architecture audit: trigger descriptions, gotchas.md, progressive disclosure, project CLAUDE.md
+- [ ] 06-02-PLAN.md — E2E test fixtures (SD, Flux, Video, API-node workflows) and integration tests
+- [ ] 06-03-PLAN.md — Install script (macOS + Windows), README, .gitignore cleanup
