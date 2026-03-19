@@ -23,14 +23,16 @@ Template creators can go from "what should we build next?" to "here's a cloud-te
 - ✓ Gap analysis: identify popular nodes not covered by any template — Phase 2
 - ✓ Template coverage reporting by category — Phase 2
 
+- ✓ Validate workflows against template creation guidelines (12 rules, strict/lenient modes) — Phase 3
+- ✓ Flag custom node dependencies with core node alternative suggestions — Phase 3
+- ✓ Detect and flag API node usage with auth requirements (7 providers) — Phase 3
+- ✓ Cloud compatibility validation — Phase 3
+
 ### Active
 
 - [ ] Ideate new template concepts based on community trends, uncovered nodes, and gaps in the current library
 - [ ] Compose valid ComfyUI workflow JSON from scratch for novel use cases (node-aware, type-safe connections)
 - [ ] Scaffold workflows from existing templates and adapt/extend for new use cases
-- [ ] Validate workflows against template creation guidelines (core nodes preferred, no set/get nodes, subgraph rules, color/note conventions)
-- [ ] Flag custom node dependencies and document them (requiresCustomNodes field)
-- [ ] Detect and flag API node usage with auth requirements
 - [ ] Generate template metadata in index.json format (name, title, description, models, io, tags, etc.)
 - [ ] Generate Notion-friendly markdown for the workflow submission process
 - [ ] Guided phase-based workflow: discover → ideate → compose → validate → document
@@ -74,4 +76,4 @@ Template creators can go from "what should we build next?" to "here's a cloud-te
 | Scaffold + compose dual path for workflow creation | Novel use cases need from-scratch composition; variations are faster from templates | — Pending |
 
 ---
-*Last updated: 2026-03-19 after Phase 2 completion*
+*Last updated: 2026-03-19 after Phase 3 completion*
