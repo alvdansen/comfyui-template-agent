@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import copy
+
 from src.composer.models import GraphLink, GraphNode, NodeSpec
 from src.composer.node_specs import NodeSpecCache
 from src.shared.format_detector import detect_format
@@ -37,6 +39,167 @@ class WorkflowGraph:
         self._groups: list[dict] = []
         self._definitions: dict = {"subgraphs": []}
         self._extra: dict = {}
+
+    @classmethod
+    def from_json(
+        cls, workflow_data: dict, specs: NodeSpecCache | None = None
+    ) -> WorkflowGraph:
+        """Create a WorkflowGraph from existing workflow JSON.
+
+        Deep copies the input so modifications don't affect the original.
+        Supports both array-format links [id, src, src_slot, tgt, tgt_slot, type]
+        and object-format links {link_id, origin_node_id, ...}.
+        Preserves groups, definitions (subgraphs), extra, and config.
+        """
+        data = copy.deepcopy(workflow_data)
+        g = cls(specs=specs)
+
+        # Parse nodes
+        for node_dict in data.get("nodes", []):
+            node = GraphNode(
+                id=node_dict.get("id", 0),
+                type=node_dict.get("type", ""),
+                pos=node_dict.get("pos", [0, 0]),
+                size=node_dict.get("size", [315, 170]),
+                flags=node_dict.get("flags", {}),
+                order=node_dict.get("order", 0),
+                mode=node_dict.get("mode", 0),
+                inputs=node_dict.get("inputs", []),
+                outputs=node_dict.get("outputs", []),
+                properties=node_dict.get("properties", {}),
+                widgets_values=node_dict.get("widgets_values", []),
+                title=node_dict.get("title", ""),
+                color=node_dict.get("color", ""),
+                bgcolor=node_dict.get("bgcolor", ""),
+            )
+            g._nodes[node.id] = node
+
+        # Parse links (support array and object format)
+        for link_data in data.get("links", []):
+            if isinstance(link_data, list):
+                # Array format: [link_id, origin_node_id, origin_slot, target_node_id, target_slot, type]
+                link = GraphLink(
+                    link_id=link_data[0],
+                    origin_node_id=link_data[1],
+                    origin_slot=link_data[2],
+                    target_node_id=link_data[3],
+                    target_slot=link_data[4],
+                    type=link_data[5] if len(link_data) > 5 else "",
+                )
+            else:
+                # Object format
+                link = GraphLink(
+                    link_id=link_data.get("id", link_data.get("link_id", 0)),
+                    origin_node_id=link_data.get("origin_id", link_data.get("origin_node_id", 0)),
+                    origin_slot=link_data.get("origin_slot", 0),
+                    target_node_id=link_data.get("target_id", link_data.get("target_node_id", 0)),
+                    target_slot=link_data.get("target_slot", 0),
+                    type=link_data.get("type", ""),
+                )
+            g._links.append(link)
+
+        # Set next IDs above existing max
+        if g._nodes:
+            g._next_node_id = max(g._nodes.keys()) + 1
+        if g._links:
+            g._next_link_id = max(link.link_id for link in g._links) + 1
+
+        # Preserve structural fields
+        g._groups = data.get("groups", [])
+        g._definitions = data.get("definitions", {"subgraphs": []})
+        g._extra = data.get("extra", {})
+
+        return g
+
+    def get_node(self, node_id: int) -> GraphNode:
+        """Get a node by ID. Raises KeyError if not found."""
+        return self._nodes[node_id]
+
+    def get_nodes(self) -> list[GraphNode]:
+        """Get all nodes in the graph."""
+        return list(self._nodes.values())
+
+    def swap_node(
+        self,
+        node_id: int,
+        new_type: str,
+        spec: NodeSpec | None = None,
+    ) -> None:
+        """Swap a node's type, updating properties and connections.
+
+        If spec is provided, rebuilds inputs/outputs from spec and removes
+        incompatible connections. If spec is None, only updates type and
+        properties["Node name for S&R"].
+        """
+        node = self._nodes[node_id]
+        node.type = new_type
+        node.properties["Node name for S&R"] = new_type
+
+        if spec is not None:
+            # Rebuild outputs from spec
+            old_outputs = node.outputs
+            node.outputs = [
+                {"name": out.name, "type": out.type, "links": []}
+                for out in spec.outputs
+            ]
+
+            # Rebuild inputs from spec (connection-type inputs only)
+            node.inputs = [
+                {"name": inp_name, "type": inp_spec.type, "link": None}
+                for inp_name, inp_spec in {
+                    **spec.inputs_required, **spec.inputs_optional
+                }.items()
+                if not inp_spec.is_widget
+            ]
+
+            # Check existing links for compatibility and remove broken ones
+            links_to_remove = []
+            for link in self._links:
+                if link.origin_node_id == node_id:
+                    # Check if origin slot still exists and type is compatible
+                    if link.origin_slot < len(node.outputs):
+                        new_output_type = node.outputs[link.origin_slot]["type"]
+                        # Check compatibility with target input type
+                        tgt_node = self._nodes.get(link.target_node_id)
+                        if tgt_node and link.target_slot < len(tgt_node.inputs):
+                            tgt_type = tgt_node.inputs[link.target_slot]["type"]
+                            if check_type_compatibility(new_output_type, tgt_type):
+                                # Keep this link -- update type and add to new outputs
+                                link.type = new_output_type
+                                node.outputs[link.origin_slot]["links"].append(link.link_id)
+                                continue
+                    links_to_remove.append(link)
+
+                elif link.target_node_id == node_id:
+                    # Check if target slot still exists and type is compatible
+                    if link.target_slot < len(node.inputs):
+                        new_input_type = node.inputs[link.target_slot]["type"]
+                        src_node = self._nodes.get(link.origin_node_id)
+                        if src_node and link.origin_slot < len(src_node.outputs):
+                            src_type = src_node.outputs[link.origin_slot]["type"]
+                            if check_type_compatibility(src_type, new_input_type):
+                                link.type = src_type
+                                node.inputs[link.target_slot]["link"] = link.link_id
+                                continue
+                    links_to_remove.append(link)
+
+            # Remove incompatible links and clean up references
+            for link in links_to_remove:
+                if link.origin_node_id != node_id and link.origin_node_id in self._nodes:
+                    src = self._nodes[link.origin_node_id]
+                    if link.origin_slot < len(src.outputs):
+                        out = src.outputs[link.origin_slot]
+                        if link.link_id in out["links"]:
+                            out["links"].remove(link.link_id)
+
+                if link.target_node_id != node_id and link.target_node_id in self._nodes:
+                    tgt = self._nodes[link.target_node_id]
+                    if link.target_slot < len(tgt.inputs):
+                        inp = tgt.inputs[link.target_slot]
+                        if inp.get("link") == link.link_id:
+                            inp["link"] = None
+
+                self._links.remove(link)
 
     def add_node(
         self,
