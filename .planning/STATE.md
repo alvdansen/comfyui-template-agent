@@ -79,7 +79,7 @@ None yet.
 ### Blockers/Concerns
 
 - Phase 3 needs Notion guidelines extracted to structured JSON before planning (human data task, should happen during Phase 1-2 execution)
-- Phase 4 needs research-phase during planning: widget-to-position mapping, /object_info caching strategy, type-safe link construction API design
+- Phase 4 needs research-phase during planning: widget-to-position mapping, type-safe link construction API design. **UPDATE (2026-03-19): MCP Server v0.2.0 released — `search_nodes` now returns field names, defaults, COMBO options, min/max ranges. This replaces the need for /object_info caching. Also `search_templates` available. Phase 4 should use MCP tools for node specs instead of building custom caching. Fold MCP integration into Phase 4, no separate phase needed.**
 - GitHub API rate limits (60 req/hr unauthenticated) -- GITHUB_TOKEN env var support needed in Phase 1 HTTP client
 
 ## Session Continuity
