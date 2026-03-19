@@ -174,6 +174,76 @@ def sample_index_data() -> list:
 
 
 @pytest.fixture
+def sample_ksampler_spec() -> dict:
+    """Raw MCP get_node_info response dict for KSampler."""
+    return {
+        "name": "KSampler",
+        "display_name": "KSampler",
+        "description": "Samples latent images.",
+        "category": "sampling",
+        "input": {
+            "required": {
+                "model": ["MODEL"],
+                "seed": ["INT", {"default": 0, "min": 0, "max": 0xFFFFFFFFFFFFFFFF}],
+                "steps": ["INT", {"default": 20, "min": 1, "max": 10000}],
+                "cfg": ["FLOAT", {"default": 8.0, "min": 0.0, "max": 100.0, "step": 0.1}],
+                "sampler_name": [["euler", "euler_a", "heun", "dpm_2"]],
+                "scheduler": [["normal", "karras", "exponential", "sgm_uniform"]],
+                "positive": ["CONDITIONING"],
+                "negative": ["CONDITIONING"],
+                "latent_image": ["LATENT"],
+            },
+            "optional": {},
+        },
+        "output": ["LATENT"],
+        "output_name": ["LATENT"],
+        "output_node": False,
+    }
+
+
+@pytest.fixture
+def sample_loadimage_spec() -> dict:
+    """Raw MCP get_node_info response dict for LoadImage."""
+    return {
+        "name": "LoadImage",
+        "display_name": "Load Image",
+        "description": "Load an image.",
+        "category": "image",
+        "input": {
+            "required": {
+                "image": [["example.png", "photo.jpg"]],
+                "upload": [["image"]],
+            },
+            "optional": {},
+        },
+        "output": ["IMAGE", "MASK"],
+        "output_name": ["IMAGE", "MASK"],
+        "output_node": False,
+    }
+
+
+@pytest.fixture
+def sample_vaedecode_spec() -> dict:
+    """Raw MCP get_node_info response dict for VAEDecode."""
+    return {
+        "name": "VAEDecode",
+        "display_name": "VAE Decode",
+        "description": "Decode latent images with VAE.",
+        "category": "latent",
+        "input": {
+            "required": {
+                "samples": ["LATENT"],
+                "vae": ["VAE"],
+            },
+            "optional": {},
+        },
+        "output": ["IMAGE"],
+        "output_name": ["IMAGE"],
+        "output_node": False,
+    }
+
+
+@pytest.fixture
 def sample_template_workflow_json() -> dict:
     """Workflow dict with standard top-level nodes (no subgraphs)."""
     return {
