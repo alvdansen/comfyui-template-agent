@@ -46,11 +46,11 @@ Plans:
   3. User can check whether a specific node or node pack is already used in any existing template
   4. User can generate a gap analysis showing popular/trending nodes that have no template coverage
   5. User can view a coverage report showing template counts per category and identifying thin areas
-**Plans**: TBD
+**Plans**: 2 plans
 
 Plans:
-- [ ] 02-01: TBD
-- [ ] 02-02: TBD
+- [ ] 02-01-PLAN.md — Template data layer (models, fetch, search) and cross-reference module with tests
+- [ ] 02-02-PLAN.md — Gap analysis engine, coverage reporting, and Claude Code skill definition
 
 ### Phase 3: Validation Engine
 **Goal**: Users can validate any workflow against template creation guidelines and get actionable fix suggestions
@@ -106,7 +106,7 @@ Phases execute in numeric order: 1 > 2 > 3 > 4 > 5
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. Foundation + Discovery | 1/2 | In Progress|  |
-| 2. Template Intelligence | 0/0 | Not started | - |
+| 2. Template Intelligence | 0/2 | Not started | - |
 | 3. Validation Engine | 0/0 | Not started | - |
 | 4. Composition | 0/0 | Not started | - |
 | 5. Documentation + Orchestration | 0/0 | Not started | - |
