@@ -2,7 +2,7 @@
 
 import httpx
 
-from src.shared.config import BASE_URL, CLIENT_TIMEOUT, USER_AGENT
+from src.shared.config import BASE_URL, CLIENT_TIMEOUT, GITHUB_TOKEN, USER_AGENT
 
 
 def get_client() -> httpx.Client:
@@ -11,6 +11,18 @@ def get_client() -> httpx.Client:
         base_url=BASE_URL,
         timeout=CLIENT_TIMEOUT,
         headers={"User-Agent": USER_AGENT},
+    )
+
+
+def get_github_client() -> httpx.Client:
+    """Return an httpx client for GitHub raw CDN (no base_url, full URLs required)."""
+    headers = {"User-Agent": USER_AGENT}
+    if GITHUB_TOKEN:
+        headers["Authorization"] = f"token {GITHUB_TOKEN}"
+    return httpx.Client(
+        timeout=CLIENT_TIMEOUT,
+        headers=headers,
+        follow_redirects=True,
     )
 
 

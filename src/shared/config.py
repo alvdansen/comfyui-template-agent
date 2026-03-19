@@ -16,6 +16,9 @@ CACHE_TTLS = {
     "search": 900,          # 15 minutes
     "spec": 86400,          # 24 hours
     "core_nodes": 604800,   # 7 days
+    "templates": 86400,     # 24 hours
 }
+
+GITHUB_RAW_BASE = "https://raw.githubusercontent.com/Comfy-Org/workflow_templates/refs/heads/main/templates"
 
 GITHUB_TOKEN = os.environ.get("GITHUB_TOKEN", "")
