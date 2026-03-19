@@ -50,8 +50,8 @@
 ### Testing & Distribution
 
 - [ ] **TEST-01**: All skills tested end-to-end with real ComfyUI workflows
-- [ ] **TEST-02**: Install script sets up skills, symlinks, and dependencies for a new team member
-- [ ] **TEST-03**: README documents all skills, setup instructions, and usage examples
+- [x] **TEST-02**: Install script sets up skills, symlinks, and dependencies for a new team member
+- [x] **TEST-03**: README documents all skills, setup instructions, and usage examples
 - [x] **TEST-04**: Repo is clean and ready for sharing (gitignore, no secrets, no temp files)
 
 ## v2 Requirements
