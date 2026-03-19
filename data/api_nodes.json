@@ -8,5 +8,5 @@
     {"class_type_pattern": "Recraft", "provider": "Recraft", "auth_type": "comfy_org_jwt", "known_nodes": []},
     {"class_type_pattern": "Luma", "provider": "Luma AI", "auth_type": "comfy_org_jwt", "known_nodes": []}
   ],
-  "auth_hidden_inputs": ["auth_token_comfy_org", "api_key_comfy_org"]
+  "auth_hidden_inputs": ["api_key_comfy_org"]
 }

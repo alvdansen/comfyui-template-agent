@@ -12,10 +12,17 @@ Orchestrates the full template creation pipeline: discover, ideate, compose, val
 | Phase | Skill | Goal |
 |-------|-------|------|
 | 1. Discover | comfy-discover | Find interesting nodes |
-| 2. Ideate | comfy-templates | Identify gaps worth filling |
+| 2. Ideate | comfy-template-audit | Identify gaps worth filling |
 | 3. Compose | comfy-compose | Build the workflow JSON |
 | 4. Validate | comfy-validate | Pass guideline compliance |
 | 5. Document | comfy-document | Generate submission docs |
+
+<important>
+At the start of any flow session, check `.env` for `COMFY_ORG_API_KEY`.
+
+- **Cloud or local?** — ask the user. API node auth (Gemini, BFL, etc.) is handled automatically by the MCP server (v0.2.0+).
+  For local execution, user must open ComfyUI in **browser** at `http://127.0.0.1:8188`.
+</important>
 
 ## Key Constraints
 
@@ -29,8 +36,8 @@ Orchestrates the full template creation pipeline: discover, ideate, compose, val
 
 | Phase | Key Command |
 |-------|-------------|
-| Discover | `python3 -m src.registry.highlights --mode trending --limit 10` |
-| Ideate | `python3 -m src.templates.coverage gap --limit 20` |
+| Discover | `python -m src.registry.highlights --mode trending --limit 10` |
+| Ideate | `python -m src.templates.coverage gap --limit 20` |
 | Compose | `python -m src.composer.compose --scaffold <template> --output workflow.json` |
 | Validate | `python -m src.validator.validate --file workflow.json` |
 | Document | `python -m src.document.generate --file workflow.json --name my-template` |

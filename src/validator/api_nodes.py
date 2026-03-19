@@ -63,7 +63,38 @@ def detect_api_nodes(workflow: dict) -> list[Finding]:
                     message=f"API node '{node_type}' (node {node_id}) uses {provider}",
                     node_id=node_id,
                     node_type=node_type,
-                    suggestion=f"Requires Comfy.org account authentication ({auth_type})",
+                    suggestion=(
+                        f"API node using {provider} — auth is handled automatically "
+                        f"by the MCP server (v0.2.0+). If jobs silently vanish, "
+                        f"update your MCP server: npm install in comfyui-mcp-server dir."
+                    ),
+                )
+            )
+
+    # Detect LoadImage nodes that reference local files (cloud won't have them)
+    for node in iter_all_nodes(workflow):
+        node_type = node.get("type", "")
+        if node_type == "LoadImage":
+            image_name = None
+            widgets = node.get("widgets_values", [])
+            if widgets:
+                image_name = widgets[0] if isinstance(widgets[0], str) else None
+            findings.append(
+                Finding(
+                    rule_id="api_node_auth",
+                    severity=Severity.warning,
+                    message=f"LoadImage node {node.get('id')} references local file"
+                    + (f" '{image_name}'" if image_name else ""),
+                    node_id=node.get("id"),
+                    node_type=node_type,
+                    suggestion=(
+                        f"Do you have '{image_name}' on your local machine? "
+                        f"Check your ComfyUI input/ directory. "
+                        f"For cloud: upload images first or use LoadImageFromUrl with a public URL."
+                    ) if image_name else (
+                        "Check your ComfyUI input/ directory for the referenced image. "
+                        "For cloud: upload images first or use LoadImageFromUrl with a public URL."
+                    ),
                 )
             )
 

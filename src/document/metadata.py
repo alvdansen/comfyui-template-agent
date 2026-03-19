@@ -35,6 +35,19 @@ _OUTPUT_TYPES = {
     "SaveAudio": "audio",
 }
 
+# Node types that use API models (model name in widgets_values)
+_API_MODEL_NODES = {
+    "GeminiImage2Node",
+    "GeminiTextNode",
+    "NanoBananaNode",
+    "KlingVideoNode",
+    "RunwayGen3Node",
+    "LumaVideoNode",
+    "IdeogramNode",
+    "FluxProNode",
+    "RecraftNode",
+}
+
 
 def _load_core_nodes() -> frozenset[str]:
     """Load core_nodes.json once, return frozenset of node names."""
@@ -44,6 +57,27 @@ def _load_core_nodes() -> frozenset[str]:
             data = json.load(f)
         _core_nodes = frozenset(data["nodes"])
     return _core_nodes
+
+
+def _extract_field_name(node: dict) -> str:
+    """Extract a human-readable field name from a node's widgets_values.
+
+    For LoadImage: first widget is the filename.
+    For SaveImage/VHS_VideoCombine: first widget is the output prefix.
+    """
+    widgets = node.get("widgets_values")
+    if not isinstance(widgets, list) or not widgets:
+        return ""
+    first = widgets[0]
+    if isinstance(first, str) and first:
+        # Strip file extension for input images
+        name = first
+        for ext in (".png", ".jpg", ".jpeg", ".webp", ".mp4", ".wav"):
+            if name.endswith(ext):
+                name = name[: -len(ext)]
+                break
+        return name
+    return ""
 
 
 def _extract_io_from_nodes(nodes: list[dict], inputs: list[IOItem], outputs: list[IOItem]) -> None:
@@ -56,6 +90,7 @@ def _extract_io_from_nodes(nodes: list[dict], inputs: list[IOItem], outputs: lis
                 IOItem(
                     nodeId=node_id,
                     nodeType=node_type,
+                    fieldName=_extract_field_name(node),
                     mediaType=_INPUT_TYPES[node_type],
                 )
             )
@@ -64,6 +99,7 @@ def _extract_io_from_nodes(nodes: list[dict], inputs: list[IOItem], outputs: lis
                 IOItem(
                     nodeId=node_id,
                     nodeType=node_type,
+                    fieldName=_extract_field_name(node),
                     mediaType=_OUTPUT_TYPES[node_type],
                 )
             )
@@ -89,10 +125,11 @@ def extract_io_spec(workflow: dict) -> IOSpec:
 
 
 def _detect_models(workflow: dict) -> list[str]:
-    """Find model file paths from loader nodes in the workflow.
+    """Find model file paths and API model names from the workflow.
 
-    Looks for nodes with 'Load' in the type name that have widgets_values,
-    then extracts strings that look like model paths.
+    Checks two sources:
+    1. Loader nodes (type contains 'Load') with file-path-like widget values
+    2. API model nodes with model name strings in widget values
     """
     model_extensions = (".safetensors", ".ckpt", ".pt", ".pth", ".bin")
     models: set[str] = set()
@@ -100,16 +137,37 @@ def _detect_models(workflow: dict) -> list[str]:
     def _check_nodes(nodes: list[dict]) -> None:
         for node in nodes:
             node_type = node.get("type", "")
-            if "Load" not in node_type:
-                continue
             widgets = node.get("widgets_values")
             if not isinstance(widgets, list):
                 continue
-            for val in widgets:
-                if not isinstance(val, str):
-                    continue
-                if "/" in val or val.endswith(model_extensions):
-                    models.add(val)
+
+            # File-based models from loader nodes
+            if "Load" in node_type:
+                for val in widgets:
+                    if not isinstance(val, str):
+                        continue
+                    if "/" in val or val.endswith(model_extensions):
+                        models.add(val)
+
+            # API models from known API node types
+            if node_type in _API_MODEL_NODES:
+                for val in widgets:
+                    if not isinstance(val, str):
+                        continue
+                    # API model names: short, hyphenated, no spaces, no file ext
+                    # e.g. "gemini-3-pro-image-preview", "kling-video-v2"
+                    # Reject: prompts (have spaces), file paths, URLs, colors
+                    if (
+                        "-" in val
+                        and " " not in val
+                        and not val.endswith(model_extensions)
+                        and "/" not in val
+                        and len(val) > 5
+                        and len(val) < 80
+                        and not val.startswith(("#", "http"))
+                    ):
+                        models.add(f"{val} (API)")
+                        break  # First matching string is the model name
 
     _check_nodes(workflow.get("nodes", []))
     for subgraph in workflow.get("definitions", {}).get("subgraphs", []):

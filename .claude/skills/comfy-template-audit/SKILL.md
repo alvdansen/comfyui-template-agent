@@ -1,6 +1,6 @@
 ---
-name: comfy-templates
-description: "When the user wants to browse existing templates, check if a node has template coverage, or find gaps worth filling"
+name: comfy-template-audit
+description: "When the user wants to audit existing templates, check if a node has template coverage, or find gaps worth filling"
 ---
 
 # Template Intelligence

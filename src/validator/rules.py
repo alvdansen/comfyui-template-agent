@@ -56,13 +56,25 @@ SEVERITY_MAP = {
 
 def check_core_node_preference(workflow: dict) -> list[Finding]:
     """Flag custom (non-core) nodes with warning severity."""
+    from src.validator.api_nodes import load_api_node_data
+
     core = _load_core_nodes()
+    # Build set of known API node types (handled separately by detect_api_nodes)
+    api_data = load_api_node_data()
+    api_patterns = [e.get("class_type_pattern", "") for e in api_data.get("api_nodes", [])]
+    api_known = set()
+    for entry in api_data.get("api_nodes", []):
+        api_known.update(entry.get("known_nodes", []))
+
     findings = []
     for node in iter_all_nodes(workflow):
         node_type = node.get("type", "")
         node_id = node.get("id")
         # Skip UUID-style subgraph references
         if len(node_type) > 30 and "-" in node_type:
+            continue
+        # Skip known API nodes (handled by detect_api_nodes)
+        if node_type in api_known or any(p and p in node_type for p in api_patterns):
             continue
         if node_type and node_type not in core:
             findings.append(

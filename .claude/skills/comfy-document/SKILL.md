@@ -7,6 +7,23 @@ description: "When the user has a finished workflow and needs submission documen
 
 Generate submission-ready documentation for ComfyUI workflow templates. Auto-extracts metadata from workflow JSON.
 
+<important>
+After generating documentation, **create a private Notion page** with the content using the Notion MCP tool.
+Do NOT create public pages. Use `notion-create-pages` with no parent (creates a private workspace-level page).
+
+```
+notion-create-pages({
+  pages: [{
+    properties: { title: "Template: <template-name>" },
+    icon: "🎨",
+    content: "<generated notion markdown>"
+  }]
+})
+```
+
+Always ask the user before creating the Notion page. Never create public or shared pages without explicit permission.
+</important>
+
 ## Commands
 
 ```bash

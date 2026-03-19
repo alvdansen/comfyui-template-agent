@@ -7,7 +7,7 @@ Claude Code agent toolkit for ComfyUI template creation. Six skills guide templa
 | Skill | Trigger |
 |-------|---------|
 | comfy-discover | Exploring nodes -- trending, new, popular, or searching by capability |
-| comfy-templates | Browsing templates, checking coverage, finding gaps worth filling |
+| comfy-template-audit | Browsing templates, checking coverage, finding gaps worth filling |
 | comfy-validate | Checking workflow JSON against guidelines, cloud compatibility, submission readiness |
 | comfy-compose | Building workflows -- from scratch, from scaffold, or modifying existing |
 | comfy-document | Generating submission docs -- index.json, Notion markdown, thumbnail specs |

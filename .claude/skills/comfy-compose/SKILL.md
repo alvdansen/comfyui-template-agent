@@ -8,7 +8,23 @@ description: "When the user wants to build a new ComfyUI workflow -- from scratc
 Compose valid ComfyUI workflow JSON through guided building or template scaffolding.
 
 <important>
-ComfyUI MCP server must be connected (comfyui-cloud or comfyui-mcp). Test by calling `search_nodes` -- if it fails, instruct user to start ComfyUI + MCP server.
+Before starting, check prerequisites:
+
+1. **ComfyUI MCP server connected** — test by calling `search_nodes`. If it fails, instruct user to start ComfyUI + MCP server.
+2. **Cloud or local?** — ask the user. This determines auth and image handling.
+</important>
+
+<important if="submitting to cloud">
+API node auth (Gemini, BFL, Bria, Luma) is handled automatically by the MCP server (v0.2.0+). No token passing needed.
+If a LoadImage node references a local file, it won't exist on cloud — ask the user if they have the image locally and suggest alternatives.
+If jobs silently vanish, the MCP server may need updating.
+
+**Polling**: Cloud jobs can take 30s to several minutes depending on complexity.
+- Poll `get_job_status` every 10-15 seconds.
+- Do NOT give up unless `get_job_status` returns an explicit error/failure status.
+- If the job is still "running" or "queued" after 2+ minutes, ask the user: "Still running — keep waiting or cancel?" Do NOT silently stop polling.
+- A job that's queued but not running is normal (waiting for GPU). Only treat it as a silent failure if it disappears from both queue AND history.
+- API node workflows (Gemini, BFL) are especially slow — budget 3-5 minutes.
 </important>
 
 ## Two Starting Paths
@@ -34,6 +50,30 @@ python -m src.composer.compose --file workflow.json --output modified.json
 | `--output <path>` | Output path (default: workflow.json) |
 | `--no-validate` | Skip validation (not recommended) |
 | `--no-layout` | Skip auto-layout positioning |
+
+<important if="submitting workflow to cloud or local execution">
+Composed workflows are **workflow format** (nodes[] + links[]). The `submit_workflow` MCP tool needs **API format** (flat dict with string node IDs).
+
+To convert, use `workflow_to_api()` from `src.shared.convert`:
+
+```python
+from src.shared.convert import workflow_to_api
+
+api_workflow = workflow_to_api(workflow_data, node_specs=specs)
+```
+
+**You MUST look up node specs before converting.** Without specs, widget values get wrong names and the workflow silently fails or runs with defaults.
+
+1. Collect unique `class_type` values from the workflow
+2. For each, call MCP `search_nodes(q="NodeType")` to get the input schema
+3. Pass specs as `{node_type: spec_dict}` to the converter
+4. The converter automatically strips UI-only controls (`control_after_generate`, `upload`) that appear in widget values but aren't real node inputs
+
+Known pitfalls without specs:
+- Widget names guessed wrong (e.g. `system_instruction` vs `system_prompt`)
+- UI-only values like `control_after_generate` included in API payload (causes rejection)
+- Positional mismatch when required/optional input order differs from widget order
+</important>
 
 ## Key Constraints
 
