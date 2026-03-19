@@ -32,12 +32,16 @@ Template creators can go from "what should we build next?" to "here's a cloud-te
 - ✓ Scaffold workflows from existing templates and adapt/extend — Phase 4
 - ✓ Incremental composition with per-step validation — Phase 4
 
+- ✓ Generate template metadata in index.json format — Phase 5
+- ✓ Generate Notion-friendly markdown for submission — Phase 5
+- ✓ Auto-extract IO spec from workflow JSON — Phase 5
+- ✓ Thumbnail/screenshot requirement reminders — Phase 5
+- ✓ Guided phase-based workflow: discover → ideate → compose → validate → document — Phase 5
+- ✓ Context-aware suggestions between phases — Phase 5
+
 ### Active
 
-- [ ] Generate template metadata in index.json format (name, title, description, models, io, tags, etc.)
-- [ ] Generate Notion-friendly markdown for the workflow submission process
-- [ ] Guided phase-based workflow: discover → ideate → compose → validate → document
-- [ ] Remind users to capture screenshots/thumbnails where needed
+(All core requirements validated — Phase 6: Testing & Distribution remaining)
 
 ### Out of Scope
 
@@ -77,4 +81,4 @@ Template creators can go from "what should we build next?" to "here's a cloud-te
 | Scaffold + compose dual path for workflow creation | Novel use cases need from-scratch composition; variations are faster from templates | — Pending |
 
 ---
-*Last updated: 2026-03-19 after Phase 4 completion*
+*Last updated: 2026-03-19 after Phase 5 completion*
