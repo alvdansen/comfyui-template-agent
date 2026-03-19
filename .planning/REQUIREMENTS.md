@@ -7,11 +7,11 @@
 
 ### Discovery
 
-- [ ] **DISC-01**: User can browse trending/new/rising/popular/random nodes from the ComfyUI registry
-- [ ] **DISC-02**: User can search nodes by name, category, or input/output type
+- [x] **DISC-01**: User can browse trending/new/rising/popular/random nodes from the ComfyUI registry
+- [x] **DISC-02**: User can search nodes by name, category, or input/output type
 - [x] **DISC-03**: User can filter discovery by media category (video, image, audio, 3D, etc.)
-- [ ] **DISC-04**: User can view what nodes a custom node pack includes
-- [ ] **DISC-05**: User can get random node suggestions for idea sparking
+- [x] **DISC-04**: User can view what nodes a custom node pack includes
+- [x] **DISC-05**: User can get random node suggestions for idea sparking
 
 ### Template Intelligence
 
@@ -84,11 +84,11 @@
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| DISC-01 | Phase 1 | Pending |
-| DISC-02 | Phase 1 | Pending |
+| DISC-01 | Phase 1 | Complete |
+| DISC-02 | Phase 1 | Complete |
 | DISC-03 | Phase 1 | Complete |
-| DISC-04 | Phase 1 | Pending |
-| DISC-05 | Phase 1 | Pending |
+| DISC-04 | Phase 1 | Complete |
+| DISC-05 | Phase 1 | Complete |
 | TMPL-01 | Phase 2 | Pending |
 | TMPL-02 | Phase 2 | Pending |
 | TMPL-03 | Phase 2 | Pending |
