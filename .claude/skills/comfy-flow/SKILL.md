@@ -25,25 +25,14 @@ Orchestrates the full template creation pipeline: discover, ideate, compose, val
 - Users can enter at any phase: "I have a workflow, validate it" starts at Phase 4.
 - Context carries forward between phases: discovered nodes, gaps, workflow path, validation status.
 
-## Suggested Commands Per Phase
+## Quick Reference
 
-```bash
-# Phase 1: Discover
-python3 -m src.registry.highlights --mode trending --limit 10
+| Phase | Key Command |
+|-------|-------------|
+| Discover | `python3 -m src.registry.highlights --mode trending --limit 10` |
+| Ideate | `python3 -m src.templates.coverage gap --limit 20` |
+| Compose | `python -m src.composer.compose --scaffold <template> --output workflow.json` |
+| Validate | `python -m src.validator.validate --file workflow.json` |
+| Document | `python -m src.document.generate --file workflow.json --name my-template` |
 
-# Phase 2: Ideate
-python3 -m src.templates.coverage gap --limit 20
-
-# Phase 3: Compose
-python -m src.composer.compose --scaffold <template> --output workflow.json
-
-# Phase 4: Validate
-python -m src.validator.validate --file workflow.json
-
-# Phase 5: Document
-python -m src.document.generate --file workflow.json --name my-template
-```
-
-## Session Status
-
-Call `format_session_status(session)` at any point to show current phase, progress checklist, accumulated context, and suggested next actions.
+Use `format_session_status(session)` to show current phase, progress, and suggested next actions.

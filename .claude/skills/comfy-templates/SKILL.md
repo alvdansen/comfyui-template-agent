@@ -32,6 +32,10 @@ python -m src.templates.coverage coverage
 
 Use `--refresh` on any command to bypass cache.
 
+## Live Example
+
+!python -m src.templates.coverage gap --limit 3
+
 ## Key Constraints
 
 - Cross-reference returns exact and fuzzy matches -- fuzzy may surface unexpected results when exact match returns nothing.
