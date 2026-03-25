@@ -131,7 +131,7 @@ def _detect_models(workflow: dict) -> list[str]:
     1. Loader nodes (type contains 'Load') with file-path-like widget values
     2. API model nodes with model name strings in widget values
     """
-    model_extensions = (".safetensors", ".ckpt", ".pt", ".pth", ".bin")
+    model_extensions = (".safetensors", ".ckpt", ".pt", ".pth", ".bin", ".gguf")
     models: set[str] = set()
 
     def _check_nodes(nodes: list[dict]) -> None:
