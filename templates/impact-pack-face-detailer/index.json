@@ -1,0 +1,48 @@
+{
+  "name": "impact-pack-face-detailer",
+  "title": "Impact Pack Face Detailer",
+  "description": "Automatically detects and re-generates faces at higher quality using ComfyUI Impact Pack. Runs a base SD 1.5 generation, then applies FaceDetailer with YOLO face detection and SAM segmentation to refine facial details with a lower denoise pass \u2014 before/after previews included.",
+  "mediaType": "image",
+  "mediaSubtype": "",
+  "tags": [
+    "face",
+    "inpaint",
+    "enhancement",
+    "impact-pack",
+    "SD1.5",
+    "detailing"
+  ],
+  "models": [
+    "sam_vit_b_01ec64.pth",
+    "v1-5-pruned-emaonly.safetensors"
+  ],
+  "requiresCustomNodes": [
+    "comfyui-impact-pack",
+    "comfyui-impact-subpack"
+  ],
+  "date": "2026-03-25",
+  "openSource": true,
+  "size": 0,
+  "vram": 8,
+  "usage": 0,
+  "searchRank": 0,
+  "username": "comfy-template-agent",
+  "io": {
+    "inputs": [],
+    "outputs": [
+      {
+        "nodeId": 10,
+        "nodeType": "PreviewImage",
+        "fieldName": "",
+        "mediaType": "image"
+      },
+      {
+        "nodeId": 11,
+        "nodeType": "SaveImage",
+        "fieldName": "face_detailed",
+        "mediaType": "image"
+      }
+    ]
+  },
+  "thumbnail": []
+}
