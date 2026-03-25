@@ -161,31 +161,31 @@
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| TOOL-01 | — | Pending |
-| TOOL-02 | — | Pending |
-| MELB-01 | — | Pending |
-| MELB-02 | — | Pending |
-| MELB-03 | — | Pending |
-| MELB-04 | — | Pending |
-| FLOR-01 | — | Pending |
-| FLOR-02 | — | Pending |
-| FLOR-03 | — | Pending |
-| FLOR-04 | — | Pending |
-| GGUF-01 | — | Pending |
-| GGUF-02 | — | Pending |
-| GGUF-03 | — | Pending |
-| GGUF-04 | — | Pending |
-| IMPC-01 | — | Pending |
-| IMPC-02 | — | Pending |
-| IMPC-03 | — | Pending |
-| IMPC-04 | — | Pending |
+| TOOL-01 | Phase 7 | Pending |
+| TOOL-02 | Phase 7 | Pending |
+| MELB-01 | Phase 8 | Pending |
+| MELB-02 | Phase 8 | Pending |
+| MELB-03 | Phase 8 | Pending |
+| MELB-04 | Phase 8 | Pending |
+| FLOR-01 | Phase 9 | Pending |
+| FLOR-02 | Phase 9 | Pending |
+| FLOR-03 | Phase 9 | Pending |
+| FLOR-04 | Phase 9 | Pending |
+| GGUF-01 | Phase 10 | Pending |
+| GGUF-02 | Phase 10 | Pending |
+| GGUF-03 | Phase 10 | Pending |
+| GGUF-04 | Phase 10 | Pending |
+| IMPC-01 | Phase 11 | Pending |
+| IMPC-02 | Phase 11 | Pending |
+| IMPC-03 | Phase 11 | Pending |
+| IMPC-04 | Phase 11 | Pending |
 
 **Coverage:**
 - v1 requirements: 24 total (all complete)
 - v2.0 requirements: 18 total
-- Mapped to phases: 0 (awaiting roadmap)
-- Unmapped: 18
+- Mapped to phases: 18/18
+- Unmapped: 0
 
 ---
 *Requirements defined: 2026-03-18*
-*Last updated: 2026-03-25 after v2.0 milestone requirements definition*
+*Last updated: 2026-03-25 after v2.0 roadmap creation*
