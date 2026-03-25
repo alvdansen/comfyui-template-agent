@@ -1,5 +1,5 @@
 {
-  "last_node_id": 5,
+  "last_node_id": 6,
   "last_link_id": 4,
   "nodes": [
     {
@@ -193,6 +193,29 @@
       },
       "widgets_values": [],
       "title": "Preview Caption"
+    },
+    {
+      "id": 6,
+      "type": "Note",
+      "pos": [
+        100,
+        520
+      ],
+      "size": [
+        460,
+        300
+      ],
+      "flags": {},
+      "order": 0,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [],
+      "properties": {},
+      "widgets_values": [
+        "Florence2 Vision AI \u2014 Multi-Task Captioning\n\nUses Microsoft's Florence-2-large-ft model for image understanding tasks: captioning, object detection, segmentation, and OCR \u2014 all from one model.\n\nHow it works:\n1. LoadImage loads your input image\n2. DownloadAndLoadFlorence2Model downloads the model from HuggingFace on first run (~1.5 GB) and loads it in fp16 precision\n3. Florence2Run processes the image with the selected task (default: more_detailed_caption)\n4. PreviewImage shows the annotated output image\n5. PreviewAny displays the generated caption text\n\nTo try other tasks: Change the 'task' dropdown on Florence2Run. Options include caption, detailed_caption, ocr, referring_expression_segmentation, and more. Some tasks require text_input (e.g. segmentation needs a description of what to segment).\n\nRequires: ComfyUI-Florence2 (kijai)\nModel: microsoft/Florence-2-large-ft (auto-downloads)"
+      ],
+      "color": "#000000",
+      "bgcolor": "#000000"
     }
   ],
   "links": [

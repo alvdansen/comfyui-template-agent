@@ -1,5 +1,5 @@
 {
-  "last_node_id": 5,
+  "last_node_id": 6,
   "last_link_id": 4,
   "nodes": [
     {
@@ -180,6 +180,29 @@
         "128k"
       ],
       "title": "Save Instruments"
+    },
+    {
+      "id": 6,
+      "type": "Note",
+      "pos": [
+        100,
+        520
+      ],
+      "size": [
+        460,
+        300
+      ],
+      "flags": {},
+      "order": 0,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [],
+      "properties": {},
+      "widgets_values": [
+        "MelBandRoFormer Audio Separation\n\nSeparates any audio track into vocals and instruments using the MelBandRoFormer model.\n\nHow it works:\n1. LoadAudio loads your input audio file\n2. MelBandRoFormerModelLoader loads the separation model (MelBandRoformer_fp16.safetensors from models/diffusion_models/)\n3. MelBandRoFormerSampler processes the audio and outputs two stems: vocals and instruments\n4. Two SaveAudioMP3 nodes save each stem as separate MP3 files\n\nRequires: ComfyUI-MelBandRoFormer (kijai)\nModel: MelBandRoformer_fp16.safetensors (~456 MB)\nNote: Input audio should be stereo for best results."
+      ],
+      "color": "#000000",
+      "bgcolor": "#000000"
     }
   ],
   "links": [

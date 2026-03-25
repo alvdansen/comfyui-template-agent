@@ -1,5 +1,5 @@
 {
-  "last_node_id": 11,
+  "last_node_id": 12,
   "last_link_id": 18,
   "nodes": [
     {
@@ -508,6 +508,29 @@
         "face_detailed"
       ],
       "title": "After"
+    },
+    {
+      "id": 12,
+      "type": "Note",
+      "pos": [
+        30,
+        870
+      ],
+      "size": [
+        460,
+        300
+      ],
+      "flags": {},
+      "order": 0,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [],
+      "properties": {},
+      "widgets_values": [
+        "Impact Pack Face Detailer\n\nAutomatically detects and enhances faces in generated images using YOLO detection + SAM segmentation + inpainting.\n\nHow it works:\n1. CheckpointLoaderSimple loads an SD 1.5 checkpoint\n2. Positive and Negative prompts encode your text descriptions\n3. KSampler generates the initial image (20 steps, CFG 7.0)\n4. VAEDecode converts latent to pixel image\n5. UltralyticsDetectorProvider loads face_yolov8m.pt for YOLO face detection\n6. SAMLoader loads sam_vit_b for pixel-accurate face masking\n7. FaceDetailer receives the generated image, detects faces, and re-generates them at 0.4 denoise \u2014 preserving the overall composition while sharpening facial details\n8. PreviewImage shows the 'before' image, SaveImage saves the 'after' with enhanced faces\n\nREQUIRES TWO CUSTOM NODE PACKS:\n- comfyui-impact-pack (FaceDetailer, SAMLoader)\n- comfyui-impact-subpack (UltralyticsDetectorProvider)\nBoth must be installed or UltralyticsDetectorProvider will fail with 'Node type not found'.\n\nModels: v1-5-pruned-emaonly.safetensors + face_yolov8m.pt (models/ultralytics/bbox/) + sam_vit_b_01ec64.pth (models/sams/)"
+      ],
+      "color": "#000000",
+      "bgcolor": "#000000"
     }
   ],
   "links": [

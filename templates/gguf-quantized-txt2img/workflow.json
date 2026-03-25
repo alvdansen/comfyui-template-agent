@@ -1,5 +1,5 @@
 {
-  "last_node_id": 9,
+  "last_node_id": 10,
   "last_link_id": 9,
   "nodes": [
     {
@@ -335,6 +335,29 @@
       "widgets_values": [
         "gguf_flux"
       ]
+    },
+    {
+      "id": 10,
+      "type": "Note",
+      "pos": [
+        80,
+        880
+      ],
+      "size": [
+        460,
+        300
+      ],
+      "flags": {},
+      "order": 0,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [],
+      "properties": {},
+      "widgets_values": [
+        "GGUF Quantized FLUX.1-schnell \u2014 Text to Image\n\nGenerates images from text using GGUF-quantized FLUX.1-schnell, running on just 8 GB VRAM.\n\nHow it works:\n1. UnetLoaderGGUF loads the quantized FLUX UNET (flux1-schnell-Q4_K_S.gguf)\n2. DualCLIPLoaderGGUF loads both text encoders: CLIP-L (safetensors) and T5-XXL (GGUF Q8)\n3. VAELoader loads the FLUX VAE (ae.safetensors)\n4. Two CLIPTextEncode nodes encode your positive and negative prompts\n5. EmptyLatentImage creates a 1024x1024 latent\n6. KSampler runs 4-step Euler sampling at CFG 1.0 (FLUX uses low CFG)\n7. VAEDecode converts the latent to a pixel image\n8. SaveImage saves the output\n\nIMPORTANT \u2014 Manual Model Setup Required:\n.gguf files cannot be auto-downloaded by the template system. Download models manually from HuggingFace and place in the correct folders. See the submission docs for download links and paths.\n\nRequires: ComfyUI-GGUF (city96)\nLicense: FLUX.1-schnell is Apache 2.0 (open source)"
+      ],
+      "color": "#000000",
+      "bgcolor": "#000000"
     }
   ],
   "links": [
