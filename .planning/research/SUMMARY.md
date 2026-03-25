@@ -1,196 +1,185 @@
 # Project Research Summary
 
-**Project:** ComfyUI Template Agent
-**Domain:** Claude Code agent toolkit for ComfyUI workflow template creation
-**Researched:** 2026-03-18
+**Project:** ComfyUI Template Agent v2.0 -- Template Batch (4 Trending Node Packs)
+**Domain:** ComfyUI workflow template creation for high-download custom node packs
+**Researched:** 2026-03-25
 **Confidence:** HIGH
 
 ## Executive Summary
 
-This project is an internal Claude Code agent toolkit — not a web app, not an MCP server, not an LLM orchestration framework. The deliverable is a set of Claude Code skills (SKILL.md files) backed by importable Python modules that cover five phases of ComfyUI template creation: discover, ideate, compose, validate, and document. Research confirms this is the correct abstraction: skills are the native Claude Code interface, the team already uses them, and comfy-tip already demonstrates the pattern working. The stack is intentionally minimal — Python 3.12, httpx, Pydantic, jsonschema — with all other logic in stdlib. No framework needed.
+This v2.0 milestone produces four production-ready ComfyUI workflow templates targeting node packs with zero current coverage in the template library: ComfyUI-Florence2 (1.25M downloads, vision AI), ComfyUI-GGUF (1.69M downloads, quantized diffusion), ComfyUI Impact Pack (2.37M downloads, face detailing), and ComfyUI-MelBandRoFormer (240K downloads, audio separation). All node class names, model paths, and API surfaces were verified against GitHub source code and HuggingFace model repos -- the technical specification is solid. Critically, no new Python code is required: the existing v1.0 toolkit (WorkflowGraph, validator, document generators) handles all four templates without modification. The work is composition and documentation, not engineering.
 
-The recommended build order is dictated by hard data dependencies: shared infrastructure first, then registry discovery (porting comfy-tip directly), then template browsing and gap analysis, then the validation engine, then metadata and documentation output, and finally the orchestrator skill that chains everything. Each phase produces artifacts the next phase consumes. The killer differentiator is gap analysis: cross-referencing 8,400+ registry nodes against 400+ existing templates to surface what should be built next. Everything else either exists (comfy-tip discovery) or is table stakes that prevents PR rejections (guideline validation).
+The recommended approach is sequential template composition in ascending complexity order: MelBandRoFormer (5 nodes, linear) -> Florence2 (6 nodes, multi-output) -> GGUF (9 nodes, standard pipeline) -> Impact Pack FaceDetailer (11 nodes, fan-out from checkpoint). This order validates the compose-validate-document pipeline against progressively harder graphs and surfaces any tooling gaps before tackling the most complex workflow. Each template is fully independent -- no inter-template dependencies exist -- so the order is a pragmatic complexity ladder, not a functional requirement.
 
-The primary risks are all in the composition engine, which is the last and hardest phase. ComfyUI has two incompatible JSON formats (workflow format for templates, API format for execution) that look similar and confuse LLMs. Combined with the widget values positional array problem (positions map to parameters only via `/object_info` node definitions) and the LLM hallucination problem (12–15% baseline pass rate for raw LLM workflow generation per ComfyGPT paper), the Python builder module and format detector must be built before any generation work begins. Mitigation is clear: never let Claude construct raw workflow JSON — route all construction through a type-safe Python graph builder with per-step validation.
+The primary risks are two required tooling fixes that must precede any template composition, and the GGUF cloud deployment problem (`.gguf` files are blocked by the ComfyUI template model embedding safety policy). The GGUF template can still be submitted with manual model installation documentation, but it will not benefit from auto-download like the other three. Impact Pack also requires declaring two separate node packs in metadata (`comfyui-impact-pack` + `comfyui-impact-subpack`) -- missing the Subpack causes a runtime "Node type not found" error for `UltralyticsDetectorProvider`.
 
 ## Key Findings
 
 ### Recommended Stack
 
-Three production dependencies (httpx, Pydantic, jsonschema) plus stdlib cover everything needed for v1. The MCP server option is deferred — it only adds value if other agents need programmatic access, which is not a v1 requirement. Existing comfy-tip code at `C:/Users/minta/Projects/comfy-tip/` is directly reusable for the registry module (adapt urllib to httpx, keep scoring heuristics). API node auth detection logic exists in `C:/Users/minta/Projects/comfyui/`.
+The agent toolkit stack (Python 3.12+, httpx, Pydantic) is unchanged from v1.0. The v2.0 work adds zero new dependencies. Each template is a workflow JSON file composed via the existing `WorkflowGraph` API, validated with the existing 12-rule engine, and documented with the existing metadata/Notion generators. All four node packs are registered on registry.comfy.org and install via the standard registry path.
+
+The four node packs add these external Python dependencies to the ComfyUI environment at runtime: `transformers>=4.39.0,!=4.50.*` (Florence2), `gguf` (GGUF), `ultralytics` + `segment-anything` + `scipy>=1.11.4` (Impact Pack), and `rotary_embedding_torch` + `einops` (MelBandRoFormer). These are ComfyUI runtime concerns, not agent toolkit concerns.
 
 **Core technologies:**
-- **Python 3.12+**: Runtime — already on system, matches comfy-tip, required by MCP SDK
-- **Claude Code Skills (SKILL.md)**: Agent interface — the native distribution format; no alternative
-- **httpx 0.28+**: HTTP client for api.comfy.org + GitHub API — sync/async in one lib, proper timeout handling, better DX than comfy-tip's urllib
-- **Pydantic 2.12+**: Workflow JSON models + data validation — type-safe models for nodes/links/widgets, 5-50x faster than v1
-- **jsonschema 4.26+**: Validate against ComfyUI's official JSON Schema — distinct from Pydantic; ComfyUI publishes `index.schema.json`
-- **pytest + ruff**: Dev tooling — ruff replaces flake8 + black in a single tool
+- `WorkflowGraph` (src/composer/graph.py): the only composition API needed for all 4 templates -- no changes required
+- `run_validation(mode="strict")`: 12-rule validation before submission; all 4 templates will produce expected `core_node_preference` warnings (intentional, not errors)
+- `generate_index_entry()` + `generate_notion_markdown()`: metadata and submission doc generation; requires two pre-flight code fixes for GGUF and audio support
+- ComfyUI MCP server (`comfyui-cloud` or `comfyui-mcp`): required for `search_nodes` to fetch node specs before composition
 
-**Not to use:** LangChain, FastAPI, SQLite, Docker, CrewAI, comfyui-mcp-server (that's for cloud workflow execution, not template creation).
+**Required pre-composition code fixes (blocking):**
+- `data/core_nodes.json`: add `LoadAudio`, `SaveAudio`, `EmptyLatentAudio` -- missing audio nodes cause false-positive validation errors on the MelBandRoFormer template
+- `src/document/metadata.py` `_detect_models`: add `.gguf` to model extension list; add `SaveAudio`/`LoadAudio` to IO type maps
 
 ### Expected Features
 
-**Must have (table stakes):**
-- Registry node discovery — already built via comfy-tip; wrap and integrate immediately
-- Template library search + cross-reference lookup — parse index.json, build node-to-template reverse index
-- Custom node dependency detection — compare workflow class_types against core node list, populate `requiresCustomNodes`
-- API node auth detection — flag Gemini/BFL/ElevenLabs/etc. nodes with hidden auth inputs; logic exists locally
-- Guideline validation — core node preference, no set/get nodes, naming conventions, model metadata completeness
-- Template metadata generation — auto-extract models, io, tags from workflow JSON for 15+ index.json fields
-- Notion-ready submission docs — markdown rendering, saves 15-20 min per submission
+**Must have (table stakes) -- per template:**
+- Florence2: multi-task demo (captioning + detection in single workflow), model auto-download via `DownloadAndLoadFlorence2Model`, image annotation output showing bounding boxes
+- GGUF: drop-in GGUF model loading that outputs standard MODEL type, standard txt2img pipeline (only the loaders change), working FLUX.1-schnell generation on 8 GB VRAM
+- Impact Pack: automatic face detection via YOLO, SAM-based pixel-accurate face masking, single-node face enhancement (FaceDetailer wraps detect + inpaint)
+- MelBandRoFormer: vocals/instruments separation with dual SaveAudio outputs, simple linear graph reflecting the pack's 2-node API
 
 **Should have (differentiators):**
-- Gap analysis — cross-reference 8,400+ registry nodes vs 400+ templates; the "what to build next" answer; the killer feature
-- Guided phase workflow (/comfy-flow) — discover > ideate > compose > validate > document; prevents skipped steps
-- Scaffold from existing template — clone + modify for common variations (txt2img -> img2img -> inpaint)
-- Workflow composition from scratch — incremental graph edits + per-step validation (ComfySearch pattern); human-in-the-loop tolerates lower automation than academic benchmarks require
-- Model requirement analysis — auto-detect models, VRAM estimates, download URLs for `models[]` array
+- Florence2: task-switcher via widget (one workflow, 15 tasks), segmentation mask output usable downstream, Note node explaining which tasks use text_input
+- GGUF: inline documentation explaining Q4/Q8 VRAM tradeoffs, mixed-format DualCLIPLoaderGGUF (one safetensors + one GGUF encoder)
+- Impact Pack: before/after comparison showing VAEDecode output alongside FaceDetailer output, face-specific positive/negative prompts, mask output visualization
+- MelBandRoFormer: clear filename prefixes for stem outputs, Note node documenting stereo input requirement and model path
 
-**Defer to v2+:**
-- Subgraph/blueprint awareness — ComfyUI 0.3.66+, community adoption still growing
-- App Mode readiness check — low urgency until ComfyHub usage patterns are established
-- Batch validation — trivial extension once single validation works
-- MCP server interface — only if other agents need programmatic access
-
-**Anti-features (never build):**
-- Notion API integration — copy-paste is fine for v1
-- Workflow execution/testing — requires GPU + model downloads, out of scope
-- Auto-PR creation to workflow_templates — too dangerous
-- RL/GRPO training infrastructure — overkill; human-in-the-loop makes it unnecessary
+**Defer (v2+):**
+- Florence2 LoRA fine-tuning demo (requires niche LoRA models, adds complexity)
+- GGUF LoRA integration (experimental with quantized models, limited support)
+- Impact Pack multi-pass detailing (advanced pattern, not the 90% use case)
+- MelBandRoFormer batch processing (LoadAudio is single-file only, batching requires loop complexity)
 
 ### Architecture Approach
 
-Strict layered architecture: Skills (SKILL.md files as LLM instructions) sit on top of Python modules (registry, templates, composer, validator, metadata, document), which call external services (api.comfy.org, GitHub workflow_templates) and reference static data files (core_nodes.json, guidelines.json, index_schema.json). Workflow JSON is the central artifact — created by composer, validated by validator, consumed by metadata and document generators. Skills instruct Claude how to use modules via Bash tool calls; modules handle all data fetching, transformation, and schema validation.
+All four templates follow an identical composition pattern through the existing codebase: fetch node specs via MCP `search_nodes`, build a `WorkflowGraph`, call `add_node()` + `connect()` + `set_widget()`, run `auto_layout()`, serialize with `save_workflow()`, validate strict, then generate metadata and docs. No template requires subgraphs, Set/Get nodes, or API-authenticated nodes. Custom connection types (FL2MODEL, MELROFORMERMODEL, BBOX_DETECTOR, SAM_MODEL) flow through the existing wildcard path in `is_widget_input()` -- no code changes needed for these.
 
-**Major components:**
-1. **Skills layer** (`.claude/skills/`) — 6 SKILL.md files: comfy-discover, comfy-ideate, comfy-compose, comfy-validate, comfy-document, comfy-flow (orchestrator)
-2. **Registry module** (`src/registry/`) — api.comfy.org client, adapted from comfy-tip; trending/new/rising/search/spec
-3. **Template browser** (`src/templates/`) — index.json parser, gap analysis engine, template loader from GitHub
-4. **Composer** (`src/composer/`) — type-safe graph builder, scaffold from existing template, ComfyUI type system (IMAGE, LATENT, MODEL, CLIP, VAE, CONDITIONING)
-5. **Validator** (`src/validator/`) — rule engine: core node preference, no set/get, subgraph conventions, model metadata, naming, io declaration
-6. **Metadata + Document** (`src/metadata/`, `src/document/`) — index.json entry builder, Notion markdown formatter, submission packager
-7. **Shared** (`src/shared/`) — HTTP client, disk cache with TTL, config
-8. **Static data** (`data/`) — core_nodes.json, guidelines.json, index_schema.json
+**Major components and their role in v2.0:**
+1. `WorkflowGraph` (src/composer/): build all 4 workflow graphs; handles all node types, connections, and widget configuration by name
+2. Validator (12 rules): all 4 templates produce `core_node_preference` warnings (expected); `cloud_compatible` produces INFO reminders; target zero errors across all 4
+3. Document generators (src/document/): `generate_index_entry()` auto-extracts IO, models, and custom nodes; `generate_notion_markdown()` produces submission docs -- two metadata.py fixes needed before these work correctly for GGUF and audio
 
-**Key anti-patterns to avoid:** Monolithic SKILL.md (one per phase instead), Claude constructing raw JSON (use Python builder), hardcoded node specs (fetch from registry at runtime), routing everything through comfyui-mcp (that's for cloud submission).
+**Output structure (new `templates/` directory):**
+```
+templates/
+  florence2-vision-ai/         workflow.json, index.json, submission.md
+  gguf-quantized-txt2img/      workflow.json, index.json, submission.md
+  impact-pack-face-detailer/   workflow.json, index.json, submission.md
+  melbandroformer-audio-separation/  workflow.json, index.json, submission.md
+```
 
 ### Critical Pitfalls
 
-1. **Workflow vs API format confusion** — Templates require workflow format (`nodes[]` + `links[]`); LLMs default to API format (`class_type` + flat node IDs). Prevent by: building a format detector as the first validation step; never generating API format for templates; hardcoding workflow format in all generation prompts. Address in Phase 1.
+1. **GGUF models blocked by template safety policy** -- `.gguf` files are classified "unsafe" by the ComfyUI template model embedding system; auto-download prompts will not appear. Mitigation: add a prominent Note node with manual download instructions; embed only the safetensors components (CLIP-L, VAE) for auto-download; document manual UNET placement in the Notion submission.
 
-2. **Widget values positional mapping** — `widgets_values[]` is positional; mapping to parameter names requires loading node definitions from `/object_info`. LLMs guess wrong positions. Prevent by: fetching and caching `/object_info` node definitions; building a node schema registry before composition begins. Address in Phase 1-2.
+2. **Impact Pack requires two separate registry packs** -- `UltralyticsDetectorProvider` lives in `comfyui-impact-subpack`, not `comfyui-impact-pack`. Forgetting the Subpack in `requiresCustomNodes` causes "Node type not found" at runtime. Mitigation: list both packs in metadata; add a Note node in the workflow stating both are required.
 
-3. **LLM node hallucination** — Raw LLM workflow generation achieves only 12-15% pass rate (ComfyGPT paper). LLMs fabricate plausible-sounding but non-existent node types. Prevent by: validating every `type` field against live registry; using a core node whitelist (~100 nodes) for template generation. Address in Phase 1.
+3. **core_nodes.json missing audio nodes causes false validation positives** -- `LoadAudio`/`SaveAudio` are ComfyUI core nodes (in `comfy_extras/nodes_audio.py`) but absent from `data/core_nodes.json`. Without fixing this first, MelBandRoFormer template validation incorrectly lists them as custom node dependencies. Mitigation: update core_nodes.json before any template composition.
 
-4. **Link type mismatches** — ComfyUI connections are typed; mismatches compile but fail at execution. Prevent by: type checker resolving output types from node definitions, validating every link's `data_type` bidirectionally. Address in Phase 1-2.
+4. **Florence2 first-run download delays** -- `DownloadAndLoadFlorence2Model` triggers a 1-1.5 GB HuggingFace download on first run, bypassing the template system. On cloud, cold starts incur this delay. Mitigation: default to `microsoft/Florence-2-large-ft` with `fp16` precision and `sdpa` attention; add a Note node explaining the download behavior and wait time.
 
-5. **Custom node dependency creep** — Official guidelines require core nodes only; agents prefer custom nodes for convenience. Prevent by: tagging all nodes core/custom, defaulting to core-only mode, auto-populating `requiresCustomNodes`. Address in Phase 2.
-
-6. **Validation rules trapped in Notion** — Guidelines live as unversioned prose; LLM interpretation is non-deterministic. Prevent by: extracting rules to structured `data/guidelines.json` with named validators (rule ID + check logic + severity). Address as data task in Phase 1, validation code in Phase 2.
+5. **Impact Pack version drift breaks widget values** -- Impact Pack ships breaking changes that shift widget parameter positions between versions. Mitigation: use `FaceDetailer` (basic variant, not FaceDetailerPipe) which changes less frequently; set ALL widget values explicitly via `set_widget()` by name (not index position); document tested version ("Tested with Impact Pack v8.24+").
 
 ## Implications for Roadmap
 
-The build order is dictated by hard data dependencies, confirmed by the architecture research's explicit build order. The phases below follow the architecture research exactly, with pitfall prevention mapped to each.
+Based on research, suggested phase structure:
 
-### Phase 1: Foundation + Discovery
-**Rationale:** Nothing else works without HTTP infrastructure, static data files, node registry access, and format detection. Registry discovery (comfy-tip port) delivers immediate value with minimal risk. Format detection and node type system must be locked down here — before any composition logic is written.
-**Delivers:** Shared infrastructure (http, cache, config), format detector, core node whitelist, `/comfy-discover` skill, working registry queries (trending/new/rising/search/spec)
-**Addresses:** Registry node discovery (table stakes), node hallucination prevention, format confusion prevention
-**Avoids:** Pitfalls 1 (format confusion) and 3 (node hallucination) — both must be solved before Phase 3
-**Research flag:** Standard patterns. comfy-tip code exists and works. Registry API is documented. No research-phase needed.
+### Phase 1: Pre-flight Tooling Fixes
+**Rationale:** Two code changes in the existing toolkit are required before any template can be correctly validated or documented. These are not optional -- without them, the MelBandRoFormer template produces false-positive validation errors and the GGUF template metadata omits model files. Must happen before any template composition begins.
+**Delivers:** Correct validation and metadata generation for audio and GGUF workflows; updated `data/core_nodes.json`; patched `src/document/metadata.py`
+**Addresses:** Pitfalls 3 (stale core_nodes.json) and the `.gguf` metadata detection gap
+**Avoids:** Misleading validation output that causes template rework later
 
-### Phase 2: Template Intelligence + Validation
-**Rationale:** Template library search, gap analysis, and the validation engine form a natural group — gap analysis needs both registry (Phase 1) and template data, and validation builds on the node schema awareness started in Phase 1. Combining these phases avoids a thin "template search only" phase.
-**Delivers:** `/comfy-ideate` skill with gap analysis, template browser, node-to-template reverse index, `/comfy-validate` skill with full rule engine (core node preference, no set/get, model metadata, API node auth, naming, io)
-**Addresses:** Template library search, cross-reference lookup, gap analysis (killer feature), guideline validation, custom node detection, API node auth detection
-**Avoids:** Pitfalls 4 (custom node creep), 5 (link type mismatches), 6 (Notion rules drift)
-**Research flag:** Standard patterns for gap analysis (set operations) and rule engine. The Notion guidelines extraction is a manual data task that must happen before this phase can be planned in detail — flag for early action.
+### Phase 2: MelBandRoFormer Audio Separation Template
+**Rationale:** Simplest graph (5 nodes, 3 links, linear pipeline, 2 custom nodes). Validates the end-to-end compose-validate-document flow with minimal risk. Exercises audio IO detection fixed in Phase 1. Fast win -- fills the audio gap in the template library with a fully safetensors model (auto-downloadable).
+**Delivers:** `templates/melbandroformer-audio-separation/` (workflow.json + index.json + submission.md)
+**Uses:** `MelBandRoFormerModelLoader` + `MelBandRoFormerSampler` (kijai/ComfyUI-MelBandRoFormer); model `MelBandRoformer_fp16.safetensors` (~456 MB) at `models/diffusion_models/`
+**Avoids:** Pitfall 5 (model path confusion -- document `diffusion_models/` in Note node); Pitfall 11 (stereo input -- document in Note)
 
-### Phase 3: Composition Engine
-**Rationale:** The hardest technical challenge. Must come after Phase 1 (needs node registry for specs) and Phase 2 (scaffold mode needs template loader). Widget value mapping and link type checking are the key engineering problems here.
-**Delivers:** `/comfy-compose` skill, type-safe graph builder (add node, connect ports, set widget values), scaffold-from-template mode, valid workflow.json output
-**Addresses:** Scaffold from existing template, workflow composition from scratch (both differentiators)
-**Avoids:** Pitfalls 2 (widget value mapping) and 4 (link type mismatches); anti-pattern of raw JSON generation
-**Research flag:** Needs research-phase during planning. Incremental graph edit strategy (ComfySearch pattern), widget-to-position mapping implementation, and type-safe link construction API design all need design work before coding. `/object_info` caching strategy must be resolved (see Gaps).
+### Phase 3: Florence2 Vision AI Template
+**Rationale:** Still simple (6 nodes, 4 links) but introduces a new pattern: model loader feeding a multi-output processor node (IMAGE, MASK, STRING, JSON). Tests the FL2MODEL custom connection type flowing through the wildcard path. Moderate VRAM (~3-4 GB), model auto-downloads, high cloud compatibility.
+**Delivers:** `templates/florence2-vision-ai/` (workflow.json + index.json + submission.md)
+**Uses:** `DownloadAndLoadFlorence2Model` + `Florence2Run` (kijai/ComfyUI-Florence2); model auto-downloaded to `models/LLM/` (~1.5 GB for florence-2-large-ft)
+**Implements:** Multi-output node pattern; task-switcher via dropdown widget; Note node documenting task options
+**Avoids:** Pitfall 3 (download delay -- default `large-ft` fp16 sdpa, Note node with wait time warning); Pitfall 6 (task/text_input mismatch -- default to `more_detailed_caption`); Pitfall 14 (unused outputs -- only wire IMAGE and STRING relevant to the default task)
 
-### Phase 4: Documentation + Submission
-**Rationale:** Documentation is last in the core workflow because it consumes outputs from all other phases: workflow JSON (Phase 3), validation report (Phase 2), and registry metadata (Phase 1). Metadata auto-extraction only works accurately after the workflow is validated.
-**Delivers:** `/comfy-document` skill, index.json entry builder, Notion markdown output, full submission package (workflow.json + index entry + notion.md + pre-PR checklist)
-**Addresses:** Template metadata generation, model requirement analysis, Notion submission docs (all table stakes)
-**Avoids:** UX pitfall of generating metadata before validation (metadata would reference a broken workflow)
-**Research flag:** Standard patterns. index.json schema is fully documented. Markdown formatting is straightforward.
+### Phase 4: GGUF Quantized FLUX.1-schnell txt2img Template
+**Rationale:** Standard txt2img pipeline pattern (mirrors existing Flux fixtures in the codebase) with GGUF loader substitutions. 9 nodes, 8 links. Tests `UnetLoaderGGUF` + `DualCLIPLoaderGGUF` fan-out pattern. Highest user demand (1.69M downloads). GGUF cloud limitation requires extra documentation effort -- tackle after simpler templates establish the documentation workflow.
+**Delivers:** `templates/gguf-quantized-txt2img/` (workflow.json + index.json + submission.md)
+**Uses:** `UnetLoaderGGUF` + `DualCLIPLoaderGGUF` (city96/ComfyUI-GGUF); models: `flux1-schnell-Q4_K_S.gguf` (~6.78 GB, manual download), `clip_l.safetensors` (~246 MB, auto), `t5-v1_1-xxl-encoder-Q8_0.gguf` (~5 GB, manual), `ae.safetensors` (~168 MB, auto)
+**Avoids:** Pitfall 1 (GGUF safety block -- explicit Note node + expanded Notion docs for manual setup); Pitfall 8 (bootleg category -- document exact node type names); Pitfall 10 (architecture mismatch -- target Flux/transformer only, not SD1/SDXL); use FLUX.1-schnell (Apache 2.0) not FLUX.1-dev (non-commercial license)
 
-### Phase 5: Orchestration + Polish
-**Rationale:** The guided end-to-end workflow (/comfy-flow) can only be built after all individual phase skills work independently. Subgraph awareness and App Mode checks are forward-looking additions with low urgency.
-**Delivers:** `/comfy-flow` orchestrator skill, guided discover-to-submit workflow, batch validation, optional subgraph awareness
-**Addresses:** Guided phase workflow (differentiator), subgraph/blueprint support (v2 feature), App Mode readiness checks
-**Research flag:** Standard patterns for SKILL.md orchestration. Subgraph format needs research-phase if implemented (new feature, still evolving).
+### Phase 5: Impact Pack Face Detailer Template
+**Rationale:** Most complex graph (11 nodes, 13+ links, fan-out from CheckpointLoaderSimple to both KSampler and FaceDetailer). Multiple custom connection types (BBOX_DETECTOR, SAM_MODEL). Highest user expectations (2.37M downloads, most-requested post-processing workflow). Do last when the compose/validate/document flow is well-practiced and composition patterns are internalized.
+**Delivers:** `templates/impact-pack-face-detailer/` (workflow.json + index.json + submission.md)
+**Uses:** `FaceDetailer` + `SAMLoader` (comfyui-impact-pack) + `UltralyticsDetectorProvider` (comfyui-impact-subpack); models: `face_yolov8m.pt` (~6 MB, `models/ultralytics/bbox/`), `sam_vit_b_01ec64.pth` (~375 MB, `models/sams/`), any SD1.5 checkpoint
+**Avoids:** Pitfall 2 (Subpack dependency -- list both packs in requiresCustomNodes, Note node in workflow); Pitfall 7 (version drift -- use FaceDetailer basic, set all widgets by name); Pitfall 9 (thread limiting -- document as known behavior in Note); Pitfall 15 (SAM quality -- include SAMLoader, don't make it optional)
 
 ### Phase Ordering Rationale
 
-- **Dependency order is non-negotiable:** Validator needs workflow JSON (composer). Metadata needs validator output. Document needs metadata. This is a hard dependency chain, not stylistic choice.
-- **Foundation pitfalls addressed first:** Format confusion and node hallucination corrupt everything downstream. Discovering a format bug in Phase 3 means rewriting the composer.
-- **Composition is the only phase with genuine technical uncertainty:** Everything else is well-documented with existing code to reference. The graph builder + widget schema + type system is the only novel engineering in this project. It warrants a research-phase.
-- **Reuse before build:** comfy-tip (registry), comfyui-mcp API node detection logic, and existing template index data reduce Phase 1-2 effort substantially.
+- Phase 1 (tooling) is a hard prerequisite: without it, Phase 2 produces misleading validation output and Phase 4 produces incomplete metadata
+- Phases 2-5 are in strict complexity order (5 -> 6 -> 9 -> 11 nodes) to build composition confidence before tackling the most complex graph
+- GGUF (Phase 4) comes after Florence2 (Phase 3) because GGUF requires significantly more documentation effort for the cloud limitation; establishing the documentation workflow on simpler templates first reduces rework risk
+- Impact Pack (Phase 5) is last because FaceDetailer has the most inputs (15+), the highest version instability risk, and the two-pack dependency gotcha -- experience from the first three templates reduces the chance of errors on the highest-stakes template
 
 ### Research Flags
 
-Needs research-phase during planning:
-- **Phase 3 (Composition Engine):** Incremental graph edit strategy, widget-to-position mapping implementation, `/object_info` caching approach, type-safe link construction API design. ComfySearch paper outlines the pattern but implementation details need design work before coding.
-- **Phase 5 (if subgraph support):** Subgraph format (`definitions.subgraphs`) is new (2025-2026) and still evolving; needs current documentation review before planning.
+Phases likely needing deeper research during planning:
+- **Phase 4 (GGUF):** GGUF model cloud pre-caching status on Comfy Cloud is unknown -- verify whether `flux1-schnell-Q4_K_S.gguf` is pre-cached before submission, or accept manual setup as the documented path; also confirm whether FLUX.1-schnell is preferred over FLUX.1-dev for licensing reasons in the template registry
+- **Phase 5 (Impact Pack):** `.pth` format (SAM model `sam_vit_b_01ec64.pth`) may be blocked by template embedding like `.gguf` is -- test empirically at composition time; if blocked, SAM requires manual placement documentation
+- **Phase 5 (Impact Pack):** Re-verify FaceDetailer widget count and ordering via MCP at composition time (not from research); Impact Pack version drift makes research-time widget specs unreliable
 
-Standard patterns (skip research-phase):
-- **Phase 1:** Registry API documented, comfy-tip code exists and works, HTTP caching is standard
-- **Phase 2:** index.json schema is public, set operations for gap analysis are straightforward, rule engine pattern is standard
-- **Phase 4:** index.json schema + markdown formatting fully specified
+Phases with standard patterns (skip additional research):
+- **Phase 1 (Tooling):** Direct code edits to known files with known changes; no research needed
+- **Phase 2 (MelBandRoFormer):** Node spec minimal (2 custom nodes), model is safetensors, graph is linear -- fully specified in research
+- **Phase 3 (Florence2):** Node spec verified against GitHub source; all parameters documented; well-understood composition pattern
 
 ## Confidence Assessment
 
 | Area | Confidence | Notes |
 |------|------------|-------|
-| Stack | HIGH | All dependency versions verified on PyPI; comfy-tip confirms the skills + Python modules pattern works; SKILL.md format is documented by Anthropic |
-| Features | MEDIUM-HIGH | Table stakes verified from official template repo + ComfyUI docs; differentiators validated by competitive research (3 academic papers); composition complexity backed by ComfyGPT/ComfySearch failure mode analysis |
-| Architecture | HIGH | Build order confirmed by dependency analysis; comfy-tip and comfyui-mcp provide working reference implementations; component boundaries map directly to the template creation workflow |
-| Pitfalls | MEDIUM-HIGH | Format confusion + hallucination verified against ComfyGPT paper and GitHub issues; widget mapping documented in official spec; other pitfalls are domain-standard with clear mitigations |
+| Stack | HIGH | Node class names verified against NODE_CLASS_MAPPINGS in GitHub source; model filenames and paths verified against HuggingFace repos; all packs confirmed on registry.comfy.org |
+| Features | MEDIUM-HIGH | Table stakes and differentiators derived from download counts, community guides, and node documentation; some widget defaults sourced from tutorials (MEDIUM) rather than official docs |
+| Architecture | HIGH | Existing codebase fully analyzed; composition pattern well-understood; custom connection type handling confirmed via code inspection; no new code needed for composition |
+| Pitfalls | HIGH | Critical pitfalls verified from primary sources (official template docs for GGUF safety policy, GitHub source for Subpack split, nodes.py for MelBandRoFormer model path); moderate pitfalls from community reports (MEDIUM) |
 
 **Overall confidence:** HIGH
 
 ### Gaps to Address
 
-- **`/object_info` endpoint strategy:** Widget-to-position mapping requires node definitions from a running ComfyUI server. Options: (1) bundle core node definitions as a static snapshot in `data/`, (2) query registry API as fallback, (3) require ComfyUI running for composition. Must decide before Phase 3 design. Recommended: bundle snapshot for core nodes (~100), fetch dynamically for custom nodes.
+- **GGUF cloud model availability:** Whether `flux1-schnell-Q4_K_S.gguf` is pre-cached on Comfy Cloud infrastructure is unknown. At Phase 4 start, check the Comfy Cloud model catalog or test empirically. If not pre-cached, the submission must include prominent manual setup documentation and reviewer notes explaining the limitation.
 
-- **Core node whitelist completeness:** The validation engine needs a complete list of core nodes shipped with vanilla ComfyUI. Must be extracted from the ComfyUI repo and maintained in `data/core_nodes.json`. Establish a sync process at project start before Phase 1 is planned.
+- **`.pth` model embedding support:** The SAM model (`sam_vit_b_01ec64.pth`) is in `.pth` format. The template system only explicitly approves `.safetensors`/`.sft` for auto-download. Test whether `.pth` triggers the same "unsafe" block as `.gguf` before finalizing the Impact Pack template model metadata. If blocked, add manual placement instructions to the Note node.
 
-- **Notion guidelines extraction:** Team's template creation guidelines live in Notion as prose. Must be converted to structured JSON validators before Phase 2 can be fully planned. This is a human data task, not an engineering problem — needs to happen in parallel with Phase 1 development.
+- **Florence2 `_detect_models` heuristic coverage:** The metadata generator's `_detect_models` uses a `"Load" in node_type` heuristic that may miss `DownloadAndLoadFlorence2Model` because it identifies models by HuggingFace repo name, not a local file path. The Phase 1 metadata.py fix should address this; verify it correctly catches the Florence2 model at Phase 3 composition time.
 
-- **GitHub API rate limits:** Unauthenticated rate is 60 req/hr. Template browser fetching individual template JSONs during gap analysis could hit this. Build `GITHUB_TOKEN` env var support into Phase 1's HTTP client; use GitHub raw content CDN for bulk reads.
-
-- **Registry API coverage:** comfy-tip fetches ~300 nodes (6 pages). Full registry is 8,400+. Gap analysis needs broader coverage. The registry API likely supports search/filter endpoints for targeted queries — verify during Phase 2 planning.
+- **MelBandRoFormer mono audio behavior:** Exact behavior when mono audio is provided (hard error vs. silent quality degradation) needs cloud testing during Phase 2 validation. Document whichever behavior is confirmed in the template's Note node.
 
 ## Sources
 
 ### Primary (HIGH confidence)
-- [ComfyUI Workflow JSON Spec](https://docs.comfy.org/specs/workflow_json) — workflow format v1.0, node/link structure, schema fields
-- [Comfy-Org/workflow_templates](https://github.com/Comfy-Org/workflow_templates) — template repo structure, index.json schema, 400+ templates
-- [ComfyUI Registry API](https://docs.comfy.org/registry/api-reference/overview) — node search, metadata, 8,400+ nodes
-- [ComfyUI Template Documentation](https://docs.comfy.org/interface/features/template) — contribution guidelines, validation rules
-- [Claude Code Skills docs](https://code.claude.com/docs/en/skills) — SKILL.md format specification
-- [MCP Python SDK](https://github.com/modelcontextprotocol/python-sdk) — v1.26.0, FastMCP pattern
-- comfy-tip source (`C:/Users/minta/Projects/comfy-tip/`) — working registry discovery implementation
-- comfyui-mcp reports (`C:/Users/minta/Projects/comfyui/`) — API node auth detection logic
+- [kijai/ComfyUI-Florence2 GitHub](https://github.com/kijai/ComfyUI-Florence2) -- NODE_CLASS_MAPPINGS, task types, model list, dependencies, pyproject.toml
+- [city96/ComfyUI-GGUF GitHub](https://github.com/city96/ComfyUI-GGUF) -- node source, folder paths, architecture notes, nodes.py
+- [city96/FLUX.1-schnell-gguf HuggingFace](https://huggingface.co/city96/FLUX.1-schnell-gguf) -- model files, quantization levels, exact sizes
+- [ltdrdata/ComfyUI-Impact-Pack GitHub](https://github.com/ltdrdata/ComfyUI-Impact-Pack) -- NODE_CLASS_MAPPINGS, requirements.txt
+- [ltdrdata/ComfyUI-Impact-Subpack GitHub](https://github.com/ltdrdata/ComfyUI-Impact-Subpack) -- confirms UltralyticsDetectorProvider is exclusively in the Subpack
+- [kijai/ComfyUI-MelBandRoFormer nodes.py](https://github.com/kijai/ComfyUI-MelBandRoFormer/blob/main/nodes.py) -- NODE_CLASS_MAPPINGS, folder path (`diffusion_models`), custom types
+- [Kijai/MelBandRoFormer_comfy HuggingFace](https://huggingface.co/Kijai/MelBandRoFormer_comfy/tree/main) -- model filenames and exact sizes
+- [ComfyUI Template System Docs](https://docs.comfy.org/interface/features/template) -- model embedding policy, unsafe format definition
+- [ComfyUI Core Audio Nodes](https://github.com/comfyanonymous/ComfyUI/blob/master/comfy_extras/nodes_audio.py) -- confirms LoadAudio/SaveAudio are core nodes
+- [Comfy-Org/workflow_templates](https://github.com/Comfy-Org/workflow_templates) -- template format, index.json schema, naming conventions, submission process
 
 ### Secondary (MEDIUM confidence)
-- [ComfySearch paper](https://arxiv.org/html/2601.04060v1) — incremental graph edit pattern, 92.5% pass rate, entropy-adaptive branching
-- [ComfyGPT paper](https://arxiv.org/html/2503.17671v1) — 12-15% baseline LLM pass rate, multi-agent decomposition
-- [ComfyMind paper](https://arxiv.org/abs/2505.17908) — semantic workflow interface, tree-based planning, 100% pass rate
-- [ComfyUI App Mode announcement](https://blog.comfy.org/p/from-workflow-to-app-introducing) — March 2026 launch, ComfyHub marketplace
-- [ComfyUI Subgraph Documentation](https://docs.comfy.org/interface/features/subgraph) — blueprint format, new feature still evolving
+- [Florence2 DeepWiki](https://deepwiki.com/kijai/ComfyUI-Florence2) -- task types, text_input constraint per task, memory management
+- [ComfyUI-GGUF DeepWiki](https://deepwiki.com/city96/ComfyUI-GGUF) -- quantization levels, VRAM savings, bootleg category, architecture support matrix
+- [FaceDetailer node documentation](https://www.runcomfy.com/comfyui-nodes/ComfyUI-Impact-Pack/FaceDetailer) -- required/optional inputs, SAM model integration
+- [Impact Pack Thread Issue #1097](https://github.com/ltdrdata/ComfyUI-Impact-Pack/issues/1097) -- FaceDetailer thread limiting behavior
 
-### Tertiary (MEDIUM confidence, community sources)
-- [GitHub Issue #1335](https://github.com/comfyanonymous/ComfyUI/issues/1335) — workflow vs API format confusion, community discussion
-- [Discussion #4787](https://github.com/comfyanonymous/ComfyUI/discussions/4787) — widget values positional mapping pain points
+### Tertiary (LOW confidence, needs validation)
+- [Flux GGUF Low VRAM Guide](https://www.nextdiffusion.ai/tutorials/how-to-run-flux-dev-gguf-in-comfyui-low-vram-guide) -- VRAM estimates by quantization level (community-written, needs cloud testing to confirm)
+- [MelBandRoFormer RunComfy Guide](https://www.runcomfy.com/comfyui-nodes/ComfyUI-MelBandRoFormer) -- stereo input requirement (community-written, exact failure mode needs cloud testing)
 
 ---
-*Research completed: 2026-03-18*
+*Research completed: 2026-03-25*
 *Ready for roadmap: yes*

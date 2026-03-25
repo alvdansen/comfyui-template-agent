@@ -1,279 +1,461 @@
-# Pitfalls Research
+# Domain Pitfalls: v2.0 Template Batch
 
-**Domain:** AI-assisted ComfyUI template creation tooling
-**Researched:** 2026-03-18
-**Confidence:** MEDIUM-HIGH (domain-specific research verified against official docs, ComfyGPT paper, and workflow_templates repo)
+**Domain:** ComfyUI workflow template creation for 4 specific node packs
+**Researched:** 2026-03-25
+**Overall confidence:** MEDIUM-HIGH
+**Scope:** Pitfalls specific to creating production-ready templates for ComfyUI-Florence2, ComfyUI-GGUF, ComfyUI Impact Pack, and ComfyUI-MelBandRoFormer
+
+---
 
 ## Critical Pitfalls
 
-### Pitfall 1: Two JSON Formats — Workflow vs API Format Confusion
+Mistakes that cause template rejection, rewrite, or cloud failure.
 
-**What goes wrong:**
-ComfyUI has two distinct JSON representations: the **workflow format** (used by the UI, contains visual layout, `nodes[]`, `links[]`, `widgets_values`) and the **API format** (used for execution, contains `class_type`, `inputs` with connection arrays `["nodeId", outputIndex]`). The template repo uses **workflow format**. The MCP/execution layer uses **API format**. Mixing them up produces JSON that looks valid but fails silently — it loads in the UI but won't execute, or vice versa.
+### Pitfall 1: GGUF Format Blocked by Template Model Embedding System
 
-**Why it happens:**
-Both are valid JSON with overlapping field names. LLMs trained on ComfyUI data see both formats interleaved. The API format omits titles, positions, and visual metadata, so generated API-format JSON dragged into ComfyUI produces "a skeleton of a real workflow" with missing data. Most tutorials and code examples use API format because that's what programmatic execution needs, but templates must be workflow format.
+**What goes wrong:** The ComfyUI template system's model embedding feature (which allows users to auto-download models when loading a template) explicitly treats `.gguf` files as "unsafe." When a GGUF model URL is embedded in a node's `properties.models`, it "will be flagged as unsafe and the link will not be shown" to the user. This means the GGUF template cannot use the standard model auto-download mechanism that every other template relies on.
 
-**How to avoid:**
-- Hardcode the target format as **workflow format** (matching workflow_templates repo) in all generation prompts and validation
-- Build a format detector that checks for `nodes[]` + `links[]` (workflow) vs flat node-ID keys with `class_type` (API) as the first validation step
-- Never generate API format for templates — if execution testing is needed, convert workflow->API using `/workflow/convert` endpoint or the sync scripts in the repo
+**Why it happens:** The template system only accepts "safe" formats (`.safetensors`, `.sft`). The `.gguf` format, while perfectly functional, is classified as unsafe by the template embedding policy. This is a policy decision in the ComfyUI template system, not a technical limitation.
+
+**Consequences:** Users who load the GGUF template will NOT get an automatic model download prompt. They must manually find, download, and place GGUF model files into `ComfyUI/models/unet` before the workflow can run. This is a significantly worse UX than other templates and may cause the template to fail review.
+
+**Affects:** ComfyUI-GGUF template exclusively.
+
+**Prevention:**
+- Document the manual model download step prominently in the template description and Notion submission
+- Consider whether a `.safetensors` fallback workflow makes more sense for the template (defeats the purpose of GGUF though)
+- Investigate if the template can reference the T5/CLIP text encoder models in `.safetensors` (which CAN be auto-downloaded) while only requiring manual placement of the GGUF UNET
+- In the index.json metadata, explicitly note that this template requires manual model setup
+- Add a Note node in the workflow explaining where to get the GGUF model file
 
 **Warning signs:**
-- Generated JSON has `class_type` at the top level without `nodes[]` array
-- Generated JSON lacks `pos`, `size`, `order`, `mode` fields on nodes
-- Template loads in ComfyUI but shows no visual connections
-- Template executes via API but can't be imported back into the editor
+- Template passes validation but fails user testing because models are not auto-downloaded
+- Review feedback: "models not found on load"
 
-**Phase to address:**
-Phase 1 (core workflow composition) — format must be locked down before any generation logic is built.
+**Detection:** Validator should flag any template using `UnetLoaderGGUF` and warn about the model embedding limitation.
+
+**Confidence:** HIGH -- verified directly from [ComfyUI template docs](https://docs.comfy.org/interface/features/template) which state ".gguf are considered unsafe."
 
 ---
 
-### Pitfall 2: Widget Values vs Input Connections — The Dual-Value Problem
+### Pitfall 2: Impact Pack Requires TWO Node Packs (Subpack Dependency)
 
-**What goes wrong:**
-ComfyUI nodes have two ways to receive data: **widget values** (static parameters like text, numbers, dropdown selections stored in `widgets_values[]`) and **input connections** (links from other nodes stored in `inputs[]`). The workflow JSON stores values in both places, and they can diverge. When a value is provided via a connection, the widget value is still present but ignored. AI-generated workflows frequently set widget values but forget to create the corresponding link, or create links that override important widget defaults.
+**What goes wrong:** The FaceDetailer workflow requires `UltralyticsDetectorProvider` to load the face detection model (e.g., `face_yolov8m.pt`). This node does NOT exist in ComfyUI-Impact-Pack itself -- it lives in the separate [ComfyUI-Impact-Subpack](https://github.com/ltdrdata/ComfyUI-Impact-Subpack). Creating a FaceDetailer template that references `UltralyticsDetectorProvider` without declaring the Subpack dependency means the template breaks for any user who only installs Impact Pack.
 
-**Why it happens:**
-The `widgets_values` array is positional — mapping values to widget names requires loading node type definitions from `/object_info`. Without that mapping, it's impossible to know that `widgets_values[3]` is the "sampler_name" parameter. LLMs generate plausible-looking arrays without understanding which position maps to which parameter. The official spec even acknowledges this is "really hard and engineering intensive" to work with programmatically.
+**Why it happens:** The Impact Pack split its YOLO/Ultralytics detection into a separate "Subpack" because it has a heavy `ultralytics` pip dependency. The main Impact Pack provides the `FaceDetailer` node, but the detection model loading is delegated to the Subpack. This is a non-obvious split -- most tutorials and references describe "Impact Pack" as a single entity.
 
-**How to avoid:**
-- Fetch and cache `/object_info` node definitions to get the canonical widget-to-position mapping for every node type
-- Build a node schema registry that maps each node's `INPUT_TYPES` to widget positions
-- Validate that connected inputs don't have conflicting widget values
-- When generating workflows, populate `widgets_values` from the node schema, not from LLM guessing
+**Consequences:** Users install Impact Pack, load the template, and get "Node type not found: UltralyticsDetectorProvider" error. The template appears broken even though the user followed the stated dependencies.
+
+**Affects:** ComfyUI Impact Pack template.
+
+**Prevention:**
+- List BOTH `ComfyUI-Impact-Pack` AND `ComfyUI-Impact-Subpack` in `requiresCustomNodes` metadata
+- In the template description, explicitly state both packs are needed
+- Add a Note node in the workflow explaining: "Requires Impact Pack + Impact Subpack"
+- The YOLO model file must go in `ComfyUI/models/ultralytics/bbox/face_yolov8m.pt` -- embed this path clearly
+- Consider using `ONNXDetectorProvider` from the main Impact Pack as an alternative (but YOLO is more accurate)
 
 **Warning signs:**
-- `widgets_values` array length doesn't match expected widget count for the node type
-- Values appear in wrong positions (e.g., a sampler name where seed should be)
-- Node works in isolation but produces wrong results when connected
+- Template validates (node types check out against specs) but fails at runtime because Subpack is missing
+- Custom node list in metadata only mentions Impact Pack
 
-**Phase to address:**
-Phase 1-2 (node schema registry must exist before workflow composition begins).
+**Detection:** The validator's `check_core_node_preference` rule will flag custom nodes, but it won't distinguish between "installed via Impact Pack" and "requires separate Subpack install." Add a special case for `UltralyticsDetectorProvider` -> warn about Subpack requirement.
+
+**Confidence:** HIGH -- verified from [Impact-Subpack repo](https://github.com/ltdrdata/ComfyUI-Impact-Subpack) which confirms UltralyticsDetectorProvider is exclusively in the Subpack.
 
 ---
 
-### Pitfall 3: LLM Node Hallucination — Fabricating Non-Existent Nodes
+### Pitfall 3: Florence2 Model Auto-Download During Template Load
 
-**What goes wrong:**
-LLMs generate workflows referencing node types that don't exist in ComfyUI. The ComfyGPT paper documents this as a primary failure mode — few-shot LLM approaches achieve only **12-15% pass accuracy** for workflow generation because models fabricate fictitious node names. With 3,500+ real node types and daily ecosystem changes, even well-trained models hallucinate plausible-sounding but non-existent nodes.
+**What goes wrong:** The `DownloadAndLoadFlorence2Model` node downloads models from Hugging Face at runtime (2-7 GB per model variant). On first use, this triggers a multi-GB download that can take several minutes. On Comfy Cloud, this download happens on every cold start unless the model is pre-cached. The template appears to "hang" or "fail" when it's actually just downloading.
 
-**Why it happens:**
-Training data contains outdated node names, renamed nodes, and deprecated nodes. Node naming conventions are inconsistent across the ecosystem (e.g., `KSampler` vs `SamplerCustom` vs `KSamplerAdvanced`). LLMs pattern-match on naming conventions and generate nodes like `ImageUpscaleAdvanced` that sound right but don't exist.
+**Why it happens:** Florence2 uses a custom download-and-load pattern rather than ComfyUI's standard model loader path. Models go to `ComfyUI/models/LLM`, not the standard `checkpoints` or `diffusion_models` directories. The `DownloadAndLoadFlorence2Model` node handles its own HuggingFace download logic, bypassing the template model embedding system entirely.
 
-**How to avoid:**
-- Maintain a live registry of valid node types from `/object_info` or api.comfy.org
-- Validate every `type` field in generated workflows against the registry BEFORE presenting to the user
-- For template creation (core nodes only): maintain a whitelist of ~100 core node types, reject everything else
-- When the agent suggests a node, include a confidence indicator: "core node (verified)" vs "custom node (registry match)" vs "UNKNOWN (not found)"
+**Consequences:**
+- First-time users wait 2-10 minutes with no progress feedback
+- On cloud: cold starts incur download time every time (unless cached)
+- Cloud GPU billing accumulates during download (not during inference)
+- Model size varies by variant: `florence-2-base` ~0.5GB, `florence-2-large` ~1.5GB, `florence-2-large-ft` ~1.5GB
+- Using `florence-2-large` with `fp32` requires 16GB+ VRAM
+
+**Affects:** ComfyUI-Florence2 template.
+
+**Prevention:**
+- Default the template to `florence-2-base-ft` (best quality-to-size ratio for general use)
+- Set precision to `fp16` (not `fp32`) to halve VRAM usage
+- Set attention to `sdpa` (widest compatibility, no special hardware needed)
+- Add a Note node: "First run downloads ~1GB model. Subsequent runs use cache."
+- In Notion submission, document the download behavior and expected wait time
+- Set `keep_model_loaded: True` if the template runs Florence2 multiple times
+- Consider using `Florence2ModelLoader` (loads from local path) instead of `DownloadAndLoadFlorence2Model` -- this allows embedding the model in template properties for auto-download, IF the model is in `.safetensors` format
 
 **Warning signs:**
-- Node type names that are very long or use unusual casing
-- Node types that combine concepts (e.g., `LoadCheckpointAndSample`) — ComfyUI uses single-responsibility nodes
-- Any node type not found in the cached registry
+- Template times out on cloud testing
+- User reports "workflow stuck" -- actually downloading
+- VRAM OOM errors when using `large` variant with `fp32`
 
-**Phase to address:**
-Phase 1 (node registry/validation must be the foundation everything builds on).
+**Detection:** Check the Florence2 loader node's widget values for precision and model variant. Flag `fp32` + `large` combo as high-VRAM risk.
+
+**Confidence:** HIGH -- verified from [Florence2 memory management docs](https://deepwiki.com/kijai/ComfyUI-Florence2/7.1-memory-management) and [node documentation](https://deepwiki.com/kijai/ComfyUI-Florence2).
 
 ---
 
-### Pitfall 4: Custom Node Dependency Creep in Templates
+### Pitfall 4: Audio Nodes Missing from core_nodes.json (Stale Core List)
 
-**What goes wrong:**
-Templates that depend on custom (third-party) nodes break when those nodes aren't installed, are updated with breaking changes, or are abandoned by maintainers. The official template guidelines explicitly state: "do not use any third-party nodes" for core templates. Yet template creators naturally reach for custom nodes that solve problems more elegantly than composing core nodes.
+**What goes wrong:** The project's `data/core_nodes.json` does NOT include `LoadAudio` or `SaveAudio`, even though these are built-in ComfyUI core nodes (in `comfy_extras/nodes_audio.py`). The MelBandRoFormer template needs `LoadAudio` for input and `SaveAudio` for output. When the template is validated, these core audio nodes will be incorrectly flagged as "custom nodes" by `check_core_node_preference`, producing spurious warnings.
 
-**Why it happens:**
-Custom nodes often provide convenience wrappers that combine multiple core node operations. An AI agent optimizing for "simplest workflow" will naturally prefer a single custom node over a 5-node core composition. The agent may not distinguish between core and custom nodes without explicit metadata.
+**Why it happens:** The `core_nodes.json` was generated at a point when audio nodes were not yet added to ComfyUI core, or the generation script missed `comfy_extras/` nodes. The validate gotchas doc already notes: "ComfyUI adds new core nodes regularly. If a known core node gets flagged as custom, run `python scripts/update_core_nodes.py` to refresh."
 
-**How to avoid:**
-- Tag every node in the registry as `core` vs `custom` (source: api.comfy.org publisher field)
-- Default to core-only mode for template generation; require explicit override for custom nodes
-- When custom nodes are used, auto-populate `requiresCustomNodes` in the template metadata
-- Show the user a dependency risk score: node age, update frequency, download count, GitHub stars
-- For each custom node used, generate a "core-only alternative" suggestion if possible
+**Consequences:**
+- MelBandRoFormer template validation produces false-positive warnings about `LoadAudio`/`SaveAudio`
+- The `requiresCustomNodes` metadata in index.json incorrectly lists `LoadAudio`/`SaveAudio` as dependencies
+- The metadata generation (`_detect_custom_nodes`) will include audio nodes in the custom node list
+- The `_detect_media_type` function in `metadata.py` checks for `SaveAudio` to detect audio media type -- this works correctly, but the custom node detection runs separately and contradicts it
+
+**Affects:** ComfyUI-MelBandRoFormer template directly. Also affects any future audio template.
+
+**Prevention:**
+- Update `core_nodes.json` BEFORE building any templates -- add at minimum: `LoadAudio`, `SaveAudio`, `EmptyLatentAudio`, `StableAudioSampler`, `StableAudioConditioning`
+- Run `python scripts/update_core_nodes.py` or manually add the audio nodes
+- After updating, verify that validation no longer flags `LoadAudio`/`SaveAudio`
 
 **Warning signs:**
-- Template uses more than 2-3 custom node packs
-- Custom node has < 1000 downloads or hasn't been updated in 6+ months
-- Node pack has open issues about ComfyUI version compatibility
+- Validation output includes "Custom node 'LoadAudio' -- not a core node"
+- Generated index.json lists LoadAudio/SaveAudio in requiresCustomNodes
 
-**Phase to address:**
-Phase 2 (validation layer) — after core composition works, add dependency analysis.
+**Detection:** Run validation on any workflow containing `LoadAudio` -- if it flags as custom, the core list is stale.
+
+**Confidence:** HIGH -- verified by searching `core_nodes.json` (no audio nodes present) and confirming [LoadAudio is in core ComfyUI](https://github.com/comfyanonymous/ComfyUI/blob/master/comfy_extras/nodes_audio.py).
 
 ---
 
-### Pitfall 5: Link Type Mismatches — Silent Connection Failures
+### Pitfall 5: MelBandRoFormer Models Live in diffusion_models, Not a Custom Path
 
-**What goes wrong:**
-ComfyUI connections are typed (IMAGE, LATENT, MODEL, CLIP, VAE, CONDITIONING, etc.). Connecting an output of type LATENT to an input expecting IMAGE compiles but fails at execution with "Return type mismatch between linked nodes." AI-generated workflows frequently create type-mismatched connections because the LLM doesn't track output types through the graph.
+**What goes wrong:** The MelBandRoFormer model loader uses `folder_paths.get_filename_list("diffusion_models")` -- meaning models must be in `ComfyUI/models/diffusion_models/`. This is the SAME directory used by Flux, SD3, and other diffusion UNET models. If the template embeds a model download pointing to this directory, the model file (`MelBandRoformer_fp16.safetensors`, ~456MB) gets mixed in with all the user's diffusion models. More critically, users may not realize to place the audio model here because "diffusion_models" sounds like it's only for image generation models.
 
-**Why it happens:**
-The link format `[link_id, source_node_id, source_output_index, dest_node_id, dest_input_index, data_type]` requires knowing the exact output type at each slot index for every node. This is implicit knowledge derived from node definitions, not visible in the workflow JSON itself. LLMs guess connection types based on semantic similarity rather than the actual type system.
+**Why it happens:** MelBandRoFormer reuses an existing ComfyUI folder path rather than registering a custom model directory. This is a pragmatic choice by the node author but creates confusion.
 
-**How to avoid:**
-- Build a type checker that resolves output types from node definitions and validates every link's `data_type` against source output type AND destination input type
-- Generate connections by walking the type graph: "KSampler output[0] is LATENT" -> "VAEDecode input[0] expects LATENT" -> valid connection
-- Reject any workflow where link types don't match both ends
-- Provide type-aware autocomplete: when the agent needs to connect node A's output, filter valid destination nodes by type compatibility
+**Consequences:**
+- Users download the model but put it in `models/audio/` or another intuitive location -- workflow fails with "model not found"
+- The shared `diffusion_models` directory becomes cluttered with unrelated model types
+- Template model embedding uses `"directory": "diffusion_models"` which is technically correct but semantically confusing
+
+**Affects:** ComfyUI-MelBandRoFormer template.
+
+**Prevention:**
+- In the template, add a Note node specifying: "Model goes in ComfyUI/models/diffusion_models/"
+- Use the exact model filename in the template's widgets_values: `MelBandRoformer_fp16.safetensors`
+- Embed the model in node properties with: `"directory": "diffusion_models"`, `"url": "https://huggingface.co/Kijai/MelBandRoFormer_comfy/resolve/main/MelBandRoformer_fp16.safetensors"` -- the model IS `.safetensors` so it CAN be auto-downloaded via the template system
+- In Notion docs, explain the directory choice
 
 **Warning signs:**
-- Links with generic or missing type fields
-- Connections between nodes that operate on different modalities (text nodes connected to image nodes without proper encoding)
-- Workflow loads in UI but fails on queue with type mismatch errors
+- User reports "model not found" despite having downloaded it
+- Model dropdown in the node doesn't show the MelBandRoFormer model
 
-**Phase to address:**
-Phase 1-2 (type validation is fundamental to workflow composition).
+**Confidence:** HIGH -- verified from [nodes.py source](https://github.com/kijai/ComfyUI-MelBandRoFormer/blob/main/nodes.py) which uses `folder_paths.get_filename_list("diffusion_models")`.
 
 ---
 
-### Pitfall 6: Registry and Repo Data Drift
+## Moderate Pitfalls
 
-**What goes wrong:**
-The api.comfy.org registry (8,400+ nodes, live metadata) and the workflow_templates GitHub repo (400+ templates, index.json) are separate data sources maintained by different processes. Node metadata in the registry may not match what's actually used in templates. A node could be listed in the registry but not yet supported in cloud environments. A template could reference a node version that's been superseded.
+### Pitfall 6: Florence2 Task-Specific Text Input Constraint
 
-**Why it happens:**
-The registry is updated by node publishers (continuous). The template repo is updated by PR review (batched). There's no automated sync between "nodes available in registry" and "nodes safe for templates." The agent needs both sources but may cache stale data from either.
+**What goes wrong:** The `Florence2Run` node's `text_input` field is only used by 3 of the 14 tasks: `referring_expression_segmentation`, `caption_to_phrase_grounding`, and `docvqa`. For all other tasks (captioning, OCR, region proposals), the text_input is silently ignored. Template creators who set a descriptive text_input for a captioning task create a misleading template -- users think they're providing a prompt, but it has no effect.
 
-**How to avoid:**
-- Treat the registry as the source of truth for "what nodes exist" and the template repo as the source of truth for "what templates exist"
-- Cache with explicit TTLs: registry data refreshed daily, template index refreshed on each session
-- When cross-referencing, always check the template repo's `index.json` version against the latest commit
-- Flag discrepancies: "Node X is in your workflow but not found in registry" or "Template Y references node version Z but registry shows version W"
+**Why it happens:** Florence2 is a multi-task model where most tasks are unconditional (no text prompt needed). The node accepts text_input as a universal parameter but only forwards it to tasks that support prompts. There's no validation or warning when text_input is provided to a non-prompt task.
+
+**Affects:** ComfyUI-Florence2 template.
+
+**Prevention:**
+- Match the task type to the text_input presence:
+  - Tasks that USE text_input: `referring_expression_segmentation`, `caption_to_phrase_grounding`, `docvqa`
+  - Tasks that IGNORE text_input: `caption`, `detailed_caption`, `more_detailed_caption`, `region_caption`, `dense_region_caption`, `region_proposal`, `ocr`, `ocr_with_region`, `prompt_gen_*`
+- For the template, choose a task that demonstrates value clearly: `more_detailed_caption` (unconditional) or `caption_to_phrase_grounding` (uses text input)
+- Add a Note node explaining which tasks accept text input
 
 **Warning signs:**
-- Agent suggests nodes that exist in registry but fail in ComfyUI cloud
-- Templates reference node packs not found in the registry
-- `index.json` locally differs from GitHub HEAD
+- Template has text_input connected/set but task is `caption` -- the input does nothing
+- User changes the text and sees no change in output
 
-**Phase to address:**
-Phase 2-3 (cross-referencing layer, after individual data sources are reliable).
+**Confidence:** HIGH -- documented in [Florence2 node analysis](https://deepwiki.com/kijai/ComfyUI-Florence2/4.2-florence2run-node).
 
 ---
 
-### Pitfall 7: Template Validation Rules Trapped in Notion
+### Pitfall 7: Impact Pack Version Instability and Parameter Drift
 
-**What goes wrong:**
-The team's template creation guidelines live in a Notion doc — not machine-readable, not version-controlled, not testable. Rules like "prefer core nodes," "no set/get nodes," "subgraph conventions," "color/note standards" are prose descriptions that the agent must interpret. When guidelines update in Notion, the agent's validation logic silently becomes stale.
+**What goes wrong:** ComfyUI Impact Pack has a history of breaking changes where "when a new parameter is created in an update, the values of nodes created in the previous version can be shifted to different fields." Between versions 2.22 and 2.21, there was partial compatibility loss. Version 8.19 removed legacy mmdet nodes entirely. Version 4.20.1 changed RegionalSampler parameter ordering. The template we build today may break on Impact Pack's next update.
 
-**Why it happens:**
-Notion is the team's natural workspace for documentation. Converting prose rules to machine-readable validation logic requires upfront engineering. It's easy to assume "the agent will just read the guidelines" — but LLM interpretation of prose rules is unreliable and non-deterministic.
+**Why it happens:** Impact Pack is one of the most actively developed custom node packs (3K+ stars, frequent updates). New features (wildcard support, DETAILER_PIPE changes) alter the node interface. The maintainer ships breaking changes with version bumps but users auto-update.
 
-**How to avoid:**
-- Extract Notion guidelines into a structured validation schema (JSON or YAML) that lives in the repo alongside the agent
-- Each rule becomes a named validator with: rule ID, description, check logic, severity (error/warning/info)
-- Version the validation schema so it can be updated independently
-- Keep the Notion doc as the human-readable source, but generate/sync the machine-readable schema from it
-- If full extraction is too costly for v1, at minimum hardcode the critical rules (no set/get, core nodes preferred) and flag everything else as "manual review needed"
+**Consequences:**
+- Template FaceDetailer widget values shift positions after user updates Impact Pack
+- New required parameters appear that the template doesn't include
+- Template loads but produces wrong results because parameter positions shifted
+
+**Affects:** ComfyUI Impact Pack template.
+
+**Prevention:**
+- Pin the Impact Pack version in template documentation ("Tested with Impact Pack v8.24+")
+- Use FaceDetailer rather than FaceDetailerPipe (the basic version changes less often)
+- Set ALL widget values explicitly -- don't rely on defaults that may change
+- Keep the FaceDetailer configuration simple: avoid advanced features like wildcard processing or detailer hooks that are more likely to change
+- After composing, test with the latest Impact Pack version to confirm compatibility
 
 **Warning signs:**
-- Agent approves workflows that violate guidelines a human reviewer catches
-- Different agent sessions apply rules inconsistently
-- Guidelines in Notion update but agent behavior doesn't change
+- FaceDetailer has more input slots than expected
+- Widget values array length doesn't match current node spec
+- "MASKS" vs "MASK" naming conflicts (changed in v4.12)
 
-**Phase to address:**
-Phase 2 (validation layer) — but the rule extraction should start in Phase 1 as a data task.
+**Detection:** Compare widget_values array length against the MCP-fetched node spec. Mismatch = version drift.
+
+**Confidence:** MEDIUM -- based on [Impact Pack changelog](https://github.com/ltdrdata/ComfyUI-Impact-Pack) and [community reports](https://github.com/ltdrdata/ComfyUI-Impact-Pack/issues/1080). Future breaking changes are unpredictable.
 
 ---
 
-## Technical Debt Patterns
+### Pitfall 8: GGUF Node Category Is "bootleg" -- Confuses Template Organization
 
-| Shortcut | Immediate Benefit | Long-term Cost | When Acceptable |
-|----------|-------------------|----------------|-----------------|
-| Hardcode core node list instead of fetching from registry | Fast to implement, no API dependency | List goes stale as ComfyUI adds core nodes (happens every few releases) | MVP only — replace with registry-backed list by v1.1 |
-| Generate workflow JSON via string templates instead of graph construction | Easier to prototype | Impossible to validate connections, can't compose programmatically, fragile to format changes | Never for production — always build a graph model |
-| Skip `/object_info` integration and hardcode widget schemas | No need to run ComfyUI server | Widget positions change across versions, new nodes can't be used | MVP for the ~20 most common nodes only |
-| Store template guidelines as LLM prompt context instead of structured rules | No engineering effort | Non-deterministic validation, can't unit-test rules, guidelines drift | Phase 1 only — must extract to structured schema by Phase 2 |
-| Cache registry data indefinitely | Faster, no rate limiting concerns | Stale node data, missing new nodes, wrong version info | Acceptable with daily TTL and manual refresh option |
+**What goes wrong:** All ComfyUI-GGUF nodes register under the `"bootleg"` category in ComfyUI's node menu. This non-standard category name makes it harder for users to find the nodes and creates confusion about whether they're "official." In a template context, this also means the nodes won't appear under standard categories like "loaders" that users typically browse.
 
-## Integration Gotchas
+**Why it happens:** The GGUF pack author chose "bootleg" as a self-deprecating category name during the WIP phase. The name has persisted through production use.
 
-| Integration | Common Mistake | Correct Approach |
-|-------------|----------------|------------------|
-| api.comfy.org registry | Assuming all listed nodes work in ComfyUI Cloud | Check `cloud_compatible` or equivalent field; many nodes are local-only |
-| workflow_templates repo | Treating `index.json` as the complete template list | Some templates exist as files but aren't in `index.json` yet (pending PR); always cross-check file system |
-| ComfyUI `/object_info` endpoint | Calling it without a running ComfyUI instance | Cache the response; for the agent, bundle a snapshot of core node definitions as fallback |
-| Notion template guidelines | Scraping Notion pages programmatically | Notion API requires auth and page IDs change; extract rules once, maintain in repo |
-| comfy-tip node discovery | Assuming trending nodes are template-ready | Trending custom nodes are often too new/unstable for templates; filter by age + stability metrics |
-| Template thumbnails | Generating or referencing thumbnails programmatically | Templates need human-captured screenshots; agent should remind user, not try to automate |
+**Affects:** ComfyUI-GGUF template.
 
-## Performance Traps
+**Prevention:**
+- In template notes, explain that GGUF nodes are under the "bootleg" category
+- Use exact node type names in documentation: `UnetLoaderGGUF`, `DualCLIPLoaderGGUF`
+- This is cosmetic -- doesn't affect functionality, but documentation should address it
 
-| Trap | Symptoms | Prevention | When It Breaks |
-|------|----------|------------|----------------|
-| Fetching full registry on every node lookup | 5-10s delay per query, API rate limits | Cache registry locally, refresh daily, search cached data | At >50 lookups/session |
-| Loading all 400+ template JSONs to check for duplicates | Memory spike, slow cross-reference | Build a lightweight template index (name, nodes used, tags) at startup | At >500 templates |
-| Validating workflow by executing it on ComfyUI | Requires running server, model downloads, GPU time | Structural validation first (schema, types, connections); execution validation is a separate manual step | Always — execution validation is out of scope for agent |
-| LLM generating entire workflow JSON in one shot | Token limits, error accumulation, low accuracy | Compose incrementally: skeleton -> nodes -> connections -> widgets -> metadata | At >15 nodes in a workflow |
+**Confidence:** HIGH -- verified from [GGUF documentation](https://deepwiki.com/city96/ComfyUI-GGUF).
 
-## Security Mistakes
+---
 
-| Mistake | Risk | Prevention |
-|---------|------|------------|
-| Embedding API keys in generated workflow JSON | Keys leak when workflows are shared or committed | Never include auth tokens in workflow JSON; API nodes use ComfyUI's account-level auth, not per-workflow keys |
-| Trusting registry node metadata without validation | Malicious node pack could have misleading metadata | Cross-reference registry metadata with actual node behavior; flag nodes with suspiciously broad permissions |
-| Storing ComfyUI Cloud credentials in agent config | Credential exposure in repo or agent memory | Use environment variables or ComfyUI's built-in auth flow; agent should never handle credentials directly |
+### Pitfall 9: FaceDetailer Thread Limiting After Execution
 
-## UX Pitfalls
+**What goes wrong:** A documented issue reports that after running FaceDetailer, subsequent generation processes use fewer CPU cores (8 instead of all available) and take 2-3x longer. This persists until ComfyUI is restarted. On cloud, this means the template execution could degrade performance for subsequent workflows in the same session.
 
-| Pitfall | User Impact | Better Approach |
-|---------|-------------|-----------------|
-| Generating complete workflow JSON and dumping it on the user | Overwhelming, impossible to review, user can't learn | Build incrementally: show the workflow graph step by step, explain why each node was chosen |
-| Silently preferring core nodes without explaining why | User doesn't understand constraints, fights the tool | Explain: "Using KSampler (core) instead of CustomSampler because templates should minimize dependencies" |
-| Auto-fixing validation errors without surfacing them | User doesn't learn guidelines, same errors repeat | Show the error, explain the rule, then offer the fix |
-| Requiring ComfyUI knowledge to use the agent | Excludes new template creators | Provide contextual explanations: "This node encodes your text prompt into a format the model understands" |
-| Generating metadata (index.json entry) before workflow is validated | Metadata references a broken workflow | Always: compose -> validate -> THEN generate metadata |
+**Why it happens:** FaceDetailer's internal detection process (YOLO inference) may set thread limits via PyTorch or OpenMP that persist in the process environment after the node completes.
 
-## "Looks Done But Isn't" Checklist
+**Affects:** ComfyUI Impact Pack template, especially on cloud where sessions are shared.
 
-- [ ] **Workflow JSON:** Has `version: 1` field — verify it's present (required by schema, easy to forget)
-- [ ] **Node positions:** All nodes have `pos` and `size` — verify they don't overlap (AI generates [0,0] for everything)
-- [ ] **Link IDs:** All link IDs are unique and sequential — verify no duplicates (LLMs reuse IDs)
-- [ ] **State tracking:** `lastNodeId`, `lastLinkId` match actual max IDs — verify consistency
-- [ ] **Model metadata:** `properties.models` URLs are valid HuggingFace/CivitAI links — verify they resolve
-- [ ] **Model filenames:** Filenames in model metadata match `widgets_values` exactly — verify string equality
-- [ ] **Template metadata:** `index.json` entry has all required fields (name, description, mediaType, thumbnailVariant) — verify against schema
-- [ ] **File naming:** Workflow filename has no spaces, dots, or special characters — verify regex `^[a-z0-9_-]+\.json$`
-- [ ] **Thumbnail reference:** Thumbnail files exist with correct naming convention (`name-1.webp`) — verify files exist (agent can't generate these, but should check)
-- [ ] **Bundle sync:** After adding template, `sync_bundles.py` has been run — remind user
+**Prevention:**
+- Document this as a known behavior in the template notes
+- On cloud: this is less of an issue since cloud sessions are typically isolated
+- Keep the FaceDetailer workflow simple to minimize the impact window
+- This is an upstream bug -- cannot be fixed in the template itself
 
-## Recovery Strategies
+**Warning signs:**
+- Subsequent workflow runs are noticeably slower after running the FaceDetailer template
+- CPU utilization drops after FaceDetailer execution
 
-| Pitfall | Recovery Cost | Recovery Steps |
-|---------|---------------|----------------|
-| Wrong JSON format (API vs workflow) | MEDIUM | Convert using `/workflow/convert` endpoint or manual restructuring; if too broken, regenerate from scratch |
-| Widget values in wrong positions | HIGH | Must re-derive all widget mappings from `/object_info`; essentially regenerate the node's widget section |
-| Hallucinated nodes | LOW | Replace with real nodes from registry; agent should suggest alternatives automatically |
-| Type-mismatched connections | MEDIUM | Identify broken links via type checker, remove them, suggest valid reconnections |
-| Custom node dependency | LOW-MEDIUM | Replace custom nodes with core equivalents; may require restructuring workflow if no core equivalent exists |
-| Stale registry data | LOW | Force refresh cache; re-validate workflow against fresh data |
-| Validation rules drift | MEDIUM | Re-extract rules from Notion; re-validate all recently created templates |
+**Confidence:** MEDIUM -- based on [community report](https://github.com/ltdrdata/ComfyUI-Impact-Pack/issues/1097). May be fixed in newer versions.
 
-## Pitfall-to-Phase Mapping
+---
 
-| Pitfall | Prevention Phase | Verification |
-|---------|------------------|--------------|
-| Format confusion (workflow vs API) | Phase 1: Core Foundation | Format detector passes on 10+ real templates from repo |
-| Widget value mapping | Phase 1-2: Node Schema + Composition | Widget arrays match `/object_info` definitions for all core nodes |
-| Node hallucination | Phase 1: Node Registry | 100% of generated node types found in registry/whitelist |
-| Custom node creep | Phase 2: Validation | Templates flagged with custom node count; core-only mode enforced by default |
-| Link type mismatches | Phase 1-2: Type System | All links in generated workflows pass bidirectional type check |
-| Registry/repo drift | Phase 2-3: Cross-referencing | Cache timestamps visible; stale data warnings surfaced |
-| Notion rules extraction | Phase 1 (data task) + Phase 2 (validation) | Structured rule set covers all Notion guidelines; validation results match human review |
+### Pitfall 10: GGUF Architecture Mismatch for SD1/SDXL Models
+
+**What goes wrong:** GGUF quantization works well with transformer/DiT architectures (Flux, SD3) but is problematic for conv2d architectures (SD1, SDXL). Conv2d models require `shape_fix=True` and higher quantization levels (Q8_0+). If the template defaults to a low quantization like Q4_K_S on an SDXL model, the output quality degrades significantly.
+
+**Why it happens:** "While quantization wasn't feasible for regular UNET models (conv2d), transformer/DiT models such as flux seem less affected by quantization." The GGUF pack supports both but the quality tradeoffs differ dramatically.
+
+**Affects:** ComfyUI-GGUF template.
+
+**Prevention:**
+- Target the template at Flux (transformer/DiT) architecture, not SDXL or SD1
+- Recommend Q4_K_S or Q5_K_S quantization for the Flux GGUF model
+- Document recommended quantization levels in the template notes
+- Use `UnetLoaderGGUF` for simple loading; only use `UnetLoaderGGUFAdvanced` if architecture override is needed
+
+**Warning signs:**
+- Template uses SDXL GGUF model at Q4 quantization -- output will be noticeably degraded
+- User reports "blurry" or "artifacted" results
+
+**Confidence:** HIGH -- verified from [GGUF documentation](https://deepwiki.com/city96/ComfyUI-GGUF).
+
+---
+
+### Pitfall 11: MelBandRoFormer Stereo/Mono Audio Mismatch
+
+**What goes wrong:** The MelBandRoFormer sampler expects stereo audio input. If the user provides mono audio, the node may fail or produce poor separation results. The node can resample to the correct sample rate, but mono-to-stereo conversion is not automatic.
+
+**Why it happens:** The underlying model was trained on stereo audio and expects 2-channel input. ComfyUI's `LoadAudio` node loads whatever format the file is in -- it doesn't convert mono to stereo.
+
+**Affects:** ComfyUI-MelBandRoFormer template.
+
+**Prevention:**
+- Add a Note node: "Input audio must be stereo. Mono audio may produce errors or poor results."
+- In the template description, specify "stereo audio input required"
+- Consider whether a mono-to-stereo conversion node should be part of the template pipeline (if one exists as a core node)
+
+**Warning signs:**
+- Template works with test audio but fails with user-provided mono files
+- Separation quality is unexpectedly poor
+
+**Confidence:** MEDIUM -- based on [MelBandRoFormer documentation](https://www.runcomfy.com/comfyui-nodes/ComfyUI-MelBandRoFormer/mel-band-ro-former-sampler). Exact mono handling behavior needs cloud testing.
+
+---
+
+## Minor Pitfalls
+
+### Pitfall 12: Florence2 Transformers Version Pinning
+
+**What goes wrong:** ComfyUI-Florence2 requires `transformers >= 4.39.0` but explicitly excludes version `4.50.*` due to compatibility issues. If the cloud environment has an incompatible transformers version, the Florence2 node fails to load.
+
+**Affects:** ComfyUI-Florence2 template (cloud only).
+
+**Prevention:** This is a cloud infrastructure concern, not a template authoring issue. Document the version requirement. If cloud testing fails, check transformers version first.
+
+**Confidence:** HIGH -- verified from [pyproject.toml](https://github.com/kijai/ComfyUI-Florence2/blob/main/pyproject.toml).
+
+---
+
+### Pitfall 13: GGUF Loader Not Discoverable via Standard Search
+
+**What goes wrong:** When using the MCP `search_nodes` to find GGUF loaders, the "bootleg" category and non-standard naming may cause the nodes to not surface in standard searches. The node type name `UnetLoaderGGUF` is close to the core `UNETLoader` but they are fundamentally different.
+
+**Affects:** ComfyUI-GGUF template (composition phase).
+
+**Prevention:**
+- Use exact node type names when searching: `UnetLoaderGGUF`, `DualCLIPLoaderGGUF`, `TripleCLIPLoaderGGUF`, `CLIPLoaderGGUF`, `UnetLoaderGGUFAdvanced`
+- Do not confuse core `UNETLoader` with `UnetLoaderGGUF` -- they have different model directory expectations
+- Note the casing difference: core is `UNETLoader` (all caps UNET), GGUF is `UnetLoaderGGUF` (mixed case)
+
+**Confidence:** MEDIUM -- based on naming analysis; actual MCP search behavior needs testing.
+
+---
+
+### Pitfall 14: Florence2Run Has 4 Outputs But Templates Usually Need 1-2
+
+**What goes wrong:** `Florence2Run` returns a 4-tuple: `(IMAGE, MASK, STRING, JSON)`. The specific outputs populated depend on the task:
+- Captioning tasks: only STRING output is useful
+- Segmentation tasks: IMAGE and MASK outputs are useful
+- OCR: STRING output
+- Grounding: IMAGE output with bounding boxes drawn
+
+Template creators who connect all 4 outputs create confusing workflows with dangling connections for outputs that are empty for the selected task.
+
+**Affects:** ComfyUI-Florence2 template.
+
+**Prevention:**
+- Only connect the outputs relevant to the chosen task
+- Add a Note node explaining which outputs are active for the task
+- For a captioning template: connect STRING output to a display/note
+- For a segmentation template: connect IMAGE and MASK outputs
+
+**Confidence:** HIGH -- verified from [Florence2 node specs](https://deepwiki.com/kijai/ComfyUI-Florence2/4.2-florence2run-node).
+
+---
+
+### Pitfall 15: Impact Pack FaceDetailer SAM Model Is Optional But Improves Quality
+
+**What goes wrong:** FaceDetailer has an optional `sam_model_opt` input. Without SAM, FaceDetailer uses only the BBOX detector's rectangular region -- the enhanced face area has hard rectangular boundaries that can show visible seams. With SAM, the face is precisely segmented before enhancement, producing much cleaner results. Templates that skip the SAM model produce noticeably worse output.
+
+**Affects:** ComfyUI Impact Pack template.
+
+**Prevention:**
+- Include SAM model loading (`SAMLoader`) in the template for best results
+- Use `sam_vit_b_01ec64.pth` (smallest SAM variant, ~375MB) for the template default
+- SAM model path: `ComfyUI/models/sams/sam_vit_b_01ec64.pth`
+- Embed the SAM model in template properties for auto-download (it's `.pth` format -- check if this is considered "safe" by template system; `.pth` may also be flagged as unsafe like `.gguf`)
+
+**Warning signs:**
+- Face enhancement has visible rectangular seam borders
+- Quality significantly worse than tutorials that include SAM
+
+**Confidence:** MEDIUM-HIGH -- based on [FaceDetailer documentation](https://www.runcomfy.com/comfyui-nodes/ComfyUI-Impact-Pack/FaceDetailer) and [community guides](https://mybyways.com/blog/improving-faces-with-impact-pack-detailers).
+
+---
+
+## Validation Rule Conflicts
+
+| Template | Validation Rule | Expected Behavior | Actual Behavior | Fix |
+|----------|----------------|-------------------|-----------------|-----|
+| ALL 4 | `core_node_preference` | Flags custom nodes as warning | Correctly flags all pack-specific nodes | Suppress warning severity for templates intentionally showcasing custom node packs |
+| MelBandRoFormer | `core_node_preference` | Should NOT flag `LoadAudio`/`SaveAudio` | WILL flag them as custom (stale core list) | Update `core_nodes.json` with audio nodes |
+| ALL 4 | `cloud_compatible` | Info reminder | Correct, but all 4 need actual cloud testing | No code fix -- operational requirement |
+| Impact Pack | `check_core_node_preference` | Flags FaceDetailer, UltralyticsDetectorProvider | Correct behavior | Expected -- these are intentionally custom |
+| GGUF | metadata `_detect_models` | Should detect GGUF model file | May NOT detect `.gguf` extension | `_detect_models` checks for `.safetensors`, `.ckpt`, `.pt`, `.pth`, `.bin` but NOT `.gguf` -- needs extension |
+
+---
+
+## Model Size and Download Concerns
+
+| Template | Model(s) | Size | Format | Auto-Download? | Directory |
+|----------|----------|------|--------|----------------|-----------|
+| Florence2 | florence-2-base-ft | ~1GB | HF auto-download | Node handles it (bypasses template system) | `models/LLM` |
+| Florence2 | florence-2-large-ft | ~1.5GB | HF auto-download | Node handles it (bypasses template system) | `models/LLM` |
+| GGUF | flux1-dev-Q4_K_S.gguf | ~6GB | `.gguf` | NO -- unsafe format, blocked | `models/unet` |
+| GGUF | T5 text encoder (GGUF) | ~5GB | `.gguf` | NO -- unsafe format, blocked | `models/clip` |
+| GGUF | CLIP-L (safetensors) | ~250MB | `.safetensors` | YES | `models/clip` |
+| Impact Pack | face_yolov8m.pt | ~6MB | `.pt` | Possibly -- `.pt` may be flagged unsafe | `models/ultralytics/bbox` |
+| Impact Pack | sam_vit_b_01ec64.pth | ~375MB | `.pth` | Possibly -- `.pth` may be flagged unsafe | `models/sams` |
+| Impact Pack | SD/SDXL checkpoint | ~2-7GB | `.safetensors` | YES | `models/checkpoints` |
+| MelBandRoFormer | MelBandRoformer_fp16.safetensors | ~456MB | `.safetensors` | YES | `models/diffusion_models` |
+
+**Key insight:** Only MelBandRoFormer and Impact Pack's checkpoint have fully auto-downloadable models via the template system. Florence2 handles its own downloads. GGUF is entirely blocked. Impact Pack's detection models (`.pt`, `.pth`) need testing to confirm template embedding support.
+
+---
+
+## Cloud Compatibility Matrix
+
+| Template | Cloud Risk | Primary Concern | Mitigation |
+|----------|-----------|-----------------|------------|
+| Florence2 | MEDIUM | First-run model download (1-1.5GB) adds to cold start time | Use `base-ft` variant, `fp16` precision, document wait time |
+| GGUF | HIGH | `.gguf` models can't be auto-provisioned; manual upload required | Document manual model placement, or investigate if cloud pre-caches popular GGUF models |
+| Impact Pack | MEDIUM | Subpack must be installed; YOLO model must be in correct subdirectory | Ensure both packs in registry; embed model if `.pt` embedding works |
+| MelBandRoFormer | LOW | Model is `.safetensors`, auto-downloadable; audio processing is lightweight | Straightforward cloud deployment; document stereo input requirement |
+
+---
+
+## Phase-Specific Warnings
+
+| Phase/Task | Likely Pitfall | Mitigation | Affected Template |
+|------------|---------------|------------|-------------------|
+| Pre-composition setup | Stale core_nodes.json missing audio nodes | Update core list before any template work | MelBandRoFormer |
+| Pre-composition setup | `_detect_models` missing `.gguf` extension | Add `.gguf` to model extension list in `metadata.py` | GGUF |
+| Composition | GGUF text encoder selection (T5 vs CLIP vs Dual) | Use `DualCLIPLoaderGGUF` for Flux (needs T5 + CLIP-L) | GGUF |
+| Composition | Florence2 task selection affects which outputs to wire | Match outputs to task type; don't wire unused outputs | Florence2 |
+| Composition | FaceDetailer has 15+ inputs -- easy to miss required ones | Use MCP node spec to enumerate all required inputs | Impact Pack |
+| Validation | All templates trigger `core_node_preference` warnings | Expected -- suppress or lower severity for intentional custom node templates | ALL |
+| Validation | Impact Pack template only lists 1 of 2 required packs | Explicitly check for Subpack requirement | Impact Pack |
+| Model embedding | GGUF format blocked by template system | Document manual setup; explore partial safetensors embedding | GGUF |
+| Model embedding | Impact Pack `.pt`/`.pth` models may be blocked | Test template embedding with `.pt` format; fallback to manual docs | Impact Pack |
+| Documentation | GGUF needs extra setup instructions vs other templates | More detailed Notion submission with model installation guide | GGUF |
+| Cloud testing | Florence2 cold start downloads are slow | Budget extra time; use smallest viable model variant | Florence2 |
+| Cloud testing | GGUF models must be manually provisioned | Test with pre-placed models; document for reviewers | GGUF |
+
+---
+
+## Code Changes Required Before Template Composition
+
+These are NOT template issues -- they're tooling gaps in the existing codebase that will cause problems for this milestone.
+
+1. **Update `data/core_nodes.json`:** Add `LoadAudio`, `SaveAudio`, `EmptyLatentAudio`, `StableAudioSampler`, `StableAudioConditioning`, and any other audio-related core nodes. Without this, MelBandRoFormer template validation will produce false positives.
+
+2. **Extend `_detect_models` in `src/document/metadata.py`:** Add `.gguf` to the `model_extensions` tuple. Currently: `(".safetensors", ".ckpt", ".pt", ".pth", ".bin")`. Without this, GGUF template metadata won't list the GGUF model files.
+
+3. **Add audio output node to `_OUTPUT_TYPES` in `metadata.py`:** `SaveAudio` is already handled by `_detect_media_type`, but `_OUTPUT_TYPES` dict (used for IO spec extraction) doesn't include it. Add `"SaveAudio": "audio"` and `"LoadAudio": "audio"` to `_INPUT_TYPES`.
+
+4. **Consider adding `_INPUT_TYPES` entry for Florence2 loader:** `DownloadAndLoadFlorence2Model` and `Florence2ModelLoader` are model loaders but don't match the `"Load" in node_type` heuristic in `_detect_models` because they use HuggingFace repo names, not file paths.
+
+---
 
 ## Sources
 
-- [ComfyUI Workflow JSON Spec](https://docs.comfy.org/specs/workflow_json) — Official schema documentation (HIGH confidence)
-- [Workflow format vs API format confusion - Issue #1335](https://github.com/comfyanonymous/ComfyUI/issues/1335) — Community discussion on format differences (HIGH confidence)
-- [ComfyGPT: Self-Optimizing Multi-Agent System for ComfyUI Workflow Generation](https://arxiv.org/html/2503.17671v1) — Academic paper on LLM workflow generation failures, 12-15% baseline accuracy (HIGH confidence)
-- [Comfy-Org/workflow_templates](https://github.com/Comfy-Org/workflow_templates) — Official template repo structure and contribution guidelines (HIGH confidence)
-- [JSON format developer complaints - Discussion #4787](https://github.com/comfyanonymous/ComfyUI/discussions/4787) — Widget values pain points (MEDIUM confidence)
-- [ComfyUI Templates Documentation](https://docs.comfy.org/interface/features/template) — Official template guidelines (HIGH confidence)
-- [Custom Node Troubleshooting](https://docs.comfy.org/troubleshooting/custom-node-issues) — Breaking changes, version mismatches (HIGH confidence)
-- [ComfyUI Registry Overview](https://docs.comfy.org/registry/overview) — Registry API documentation (HIGH confidence)
-- [API Key Integration](https://docs.comfy.org/development/comfyui-server/api-key-integration) — Auth requirements for API nodes (HIGH confidence)
-- [Custom nodes breaking after updates](https://www.apatero.com/blog/custom-nodes-breaking-comfyui-updates-fix-guide-2025) — Compatibility issues (MEDIUM confidence)
+- [ComfyUI Template System Docs](https://docs.comfy.org/interface/features/template) -- Model embedding rules, unsafe format policy (HIGH confidence)
+- [ComfyUI-GGUF GitHub](https://github.com/city96/ComfyUI-GGUF) -- Node types, architecture support, known issues (HIGH confidence)
+- [ComfyUI-GGUF DeepWiki](https://deepwiki.com/city96/ComfyUI-GGUF) -- Quantization levels, VRAM savings (HIGH confidence)
+- [ComfyUI-Florence2 GitHub](https://github.com/kijai/ComfyUI-Florence2) -- Node types, model requirements (HIGH confidence)
+- [Florence2 Memory Management](https://deepwiki.com/kijai/ComfyUI-Florence2/7.1-memory-management) -- VRAM by model size (HIGH confidence)
+- [Florence2 Node Analysis](https://deepwiki.com/kijai/ComfyUI-Florence2/4-florence2-nodes) -- Task types, input constraints (HIGH confidence)
+- [ComfyUI-Impact-Pack GitHub](https://github.com/ltdrdata/ComfyUI-Impact-Pack) -- FaceDetailer, breaking changes (HIGH confidence)
+- [ComfyUI-Impact-Subpack GitHub](https://github.com/ltdrdata/ComfyUI-Impact-Subpack) -- UltralyticsDetectorProvider location (HIGH confidence)
+- [FaceDetailer Documentation](https://www.runcomfy.com/comfyui-nodes/ComfyUI-Impact-Pack/FaceDetailer) -- Required inputs, SAM model (MEDIUM-HIGH confidence)
+- [ComfyUI-MelBandRoFormer GitHub](https://github.com/kijai/ComfyUI-MelBandRoFormer) -- Node types, model path (HIGH confidence)
+- [MelBandRoFormer HuggingFace](https://huggingface.co/Kijai/MelBandRoFormer_comfy) -- Model files, sizes (HIGH confidence)
+- [ComfyUI Core Audio Nodes](https://github.com/comfyanonymous/ComfyUI/blob/master/comfy_extras/nodes_audio.py) -- LoadAudio/SaveAudio are core (HIGH confidence)
+- [Impact Pack Thread Issue](https://github.com/ltdrdata/ComfyUI-Impact-Pack/issues/1097) -- FaceDetailer thread limiting (MEDIUM confidence)
+- [ComfyUI Workflow Templates README](https://github.com/Comfy-Org/workflow_templates/blob/main/README.md) -- Submission requirements, index.json schema (HIGH confidence)
 
 ---
-*Pitfalls research for: AI-assisted ComfyUI template creation tooling*
-*Researched: 2026-03-18*
+*Pitfalls research for: v2.0 Template Batch -- 4 node pack templates*
+*Researched: 2026-03-25*

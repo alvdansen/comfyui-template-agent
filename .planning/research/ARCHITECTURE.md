@@ -1,447 +1,557 @@
-# Architecture Research
+# Architecture: Template Workflow Graphs
 
-**Domain:** Claude Code agent toolkit for ComfyUI template creation
-**Researched:** 2026-03-18
-**Confidence:** HIGH
+**Domain:** ComfyUI workflow template composition for 4 node packs
+**Researched:** 2026-03-25
+**Confidence:** HIGH (existing codebase fully analyzed, node pack APIs verified via GitHub and documentation)
 
-## System Overview
+## How Templates Integrate With Existing Architecture
+
+The existing toolkit provides a complete pipeline for template creation. Each of the 4 templates follows the same flow through the codebase:
 
 ```
-+------------------------------------------------------------------+
-|                    Claude Code Session                             |
-|  +------------------------------------------------------------+  |
-|  |                  Skills Layer (SKILL.md)                    |  |
-|  |  /comfy-discover  /comfy-ideate  /comfy-compose             |  |
-|  |  /comfy-validate  /comfy-document  /comfy-flow              |  |
-|  +------+--------+--------+--------+---------+--------+-------+  |
-|         |        |        |        |         |        |          |
-|  +------v--------v--------v--------v---------v--------v-------+  |
-|  |                    Core Library (Python)                    |  |
-|  |  +-----------+  +----------+  +-----------+  +-----------+ |  |
-|  |  | registry  |  | template |  | composer  |  | validator | |  |
-|  |  | (discover)|  | (browse) |  | (build)   |  | (check)   | |  |
-|  |  +-----------+  +----------+  +-----------+  +-----------+ |  |
-|  |  +-----------+  +----------+                               |  |
-|  |  | metadata  |  | document |                               |  |
-|  |  | (index)   |  | (notion) |                               |  |
-|  |  +-----------+  +----------+                               |  |
-|  +-----+---------------+---------------+---------------------+  |
-|        |               |               |                         |
-+--------+---------------+---------------+-------------------------+
-         |               |               |
-   +-----v-----+  +-----v-----+  +------v------+
-   | api.comfy  |  | GitHub    |  | comfyui-mcp |
-   | .org       |  | workflow_ |  | (Cloud API) |
-   | (Registry) |  | templates |  |             |
-   +-----------+  +-----------+  +-------------+
+1. Node specs fetched via MCP search_nodes
+2. Specs cached via NodeSpecCache.from_mcp_response()
+3. WorkflowGraph built via add_node() + connect() + set_widget()
+4. auto_layout() positions nodes left-to-right
+5. save_workflow() serializes + runs lenient validation
+6. run_validation() with strict mode for final check
+7. generate_index_entry() produces metadata
+8. generate_notion_markdown() produces submission docs
 ```
 
-### Component Responsibilities
+No new code is needed. The existing `src/composer/`, `src/validator/`, and `src/document/` modules handle all 4 templates. The work is composing the workflow JSON using the existing tools.
 
-| Component | Responsibility | Implementation |
-|-----------|----------------|----------------|
-| **Skills (SKILL.md files)** | User-facing entry points. Each skill is a Claude Code slash command with instructions for the LLM | Markdown files with `---` frontmatter, installed in `.claude/skills/` |
-| **Registry module** | Node discovery from api.comfy.org -- trending, new, rising, search, node spec lookup | Python, wraps comfy-tip's `highlights.py` + adds `comfy_search`/`comfy_spec` calls |
-| **Template browser** | Browse/search the 400+ existing templates, check coverage gaps, find what nodes are already used | Python, parses `index.json` from workflow_templates repo (GitHub API or local clone) |
-| **Composer** | Build valid ComfyUI workflow JSON from scratch or by scaffolding from existing templates | Python, node graph builder with type-safe link construction |
-| **Validator** | Check workflows against template guidelines (core node preference, no set/get, subgraph rules, color/note conventions) | Python, rule engine applied to workflow JSON |
-| **Metadata generator** | Produce `index.json` entries matching the workflow_templates schema | Python, schema-aware builder with field validation |
-| **Document formatter** | Generate Notion-friendly markdown for the submission process | Python, template-based markdown output |
-| **Orchestrator skill** | `/comfy-flow` -- the guided end-to-end workflow that chains discover > ideate > compose > validate > document | SKILL.md that instructs Claude to run the phases in order |
+### Integration Points
 
-## Recommended Project Structure
+| Codebase Module | How Templates Use It |
+|-----------------|---------------------|
+| `WorkflowGraph.add_node()` | Add each node with type, title, and widget values |
+| `WorkflowGraph.connect()` | Wire outputs to inputs with type-checked connections |
+| `WorkflowGraph.set_widget()` | Configure sampler, model paths, and parameters |
+| `auto_layout()` | Position nodes in readable left-to-right DAG |
+| `save_workflow()` | Serialize to workflow JSON + lenient validation |
+| `run_validation(mode="strict")` | Full 12-rule guideline check before submission |
+| `generate_index_entry()` | Auto-extract IO, models, custom nodes for index.json |
+| `generate_notion_markdown()` | Submission-ready markdown for Notion |
+
+### Validation Expectations Per Template
+
+All 4 templates will intentionally trigger `core_node_preference` warnings because they exist specifically to showcase custom nodes. These warnings are expected and correct. The validator flags them for awareness, not as blockers. What matters:
+
+- Zero `no_set_get_nodes` errors (never use Set/Get)
+- Zero `subgraph_rules` errors (keep Preview/Save outside subgraphs)
+- Note nodes use black background (`note_color_black`)
+- No API nodes in these 4 templates (none use paid APIs), so `api_node_auth` passes clean
+
+## Template File Organization
+
+Templates live in the project root as standalone workflow JSON files, alongside their generated documentation:
 
 ```
 comfyui-template-agent/
-+-- .claude/
-|   +-- skills/
-|   |   +-- comfy-discover/
-|   |   |   +-- SKILL.md          # Node discovery & trend surfacing
-|   |   +-- comfy-ideate/
-|   |   |   +-- SKILL.md          # Template gap analysis & concept generation
-|   |   +-- comfy-compose/
-|   |   |   +-- SKILL.md          # Workflow JSON creation (from scratch or scaffold)
-|   |   +-- comfy-validate/
-|   |   |   +-- SKILL.md          # Guideline compliance checking
-|   |   +-- comfy-document/
-|   |   |   +-- SKILL.md          # Metadata + Notion markdown generation
-|   |   +-- comfy-flow/
-|   |       +-- SKILL.md          # Guided end-to-end orchestrator
-|   +-- commands/                  # Optional: Claude Code custom commands
-|   +-- settings.local.json
-+-- src/
-|   +-- registry/
-|   |   +-- __init__.py
-|   |   +-- highlights.py         # Adapted from comfy-tip (trending/new/rising/popular)
-|   |   +-- search.py             # Node pack search + individual node lookup
-|   |   +-- spec.py               # Node input/output spec retrieval
-|   |   +-- cache.py              # Shared HTTP + disk caching
-|   +-- templates/
-|   |   +-- __init__.py
-|   |   +-- browser.py            # Browse/search existing templates from index.json
-|   |   +-- coverage.py           # Gap analysis: what nodes/categories lack templates
-|   |   +-- loader.py             # Load template JSON from repo (GitHub API or local)
-|   +-- composer/
-|   |   +-- __init__.py
-|   |   +-- graph.py              # Node graph data model (nodes, links, groups)
-|   |   +-- builder.py            # Fluent API for constructing workflows programmatically
-|   |   +-- scaffold.py           # Clone + modify existing template as starting point
-|   |   +-- types.py              # ComfyUI type system (IMAGE, LATENT, MODEL, CLIP, etc.)
-|   +-- validator/
-|   |   +-- __init__.py
-|   |   +-- rules.py              # Individual validation rules
-|   |   +-- checker.py            # Run all rules against a workflow, produce report
-|   |   +-- guidelines.py         # Encoded template creation guidelines
-|   +-- metadata/
-|   |   +-- __init__.py
-|   |   +-- index_entry.py        # Build index.json entries from workflow + user input
-|   |   +-- schema.py             # index.json schema definition + validation
-|   +-- document/
-|   |   +-- __init__.py
-|   |   +-- notion.py             # Notion-friendly markdown formatter
-|   |   +-- submission.py         # Full submission package (metadata + docs + checklist)
-|   +-- shared/
-|       +-- http.py               # Shared HTTP client (urllib, no deps)
-|       +-- cache.py              # Disk cache with TTL
-|       +-- config.py             # Configuration (API URLs, cache paths, etc.)
-+-- data/
-|   +-- core_nodes.json           # List of ComfyUI core nodes (for core-node-preference validation)
-|   +-- guidelines.json           # Template creation guidelines in machine-readable form
-|   +-- index_schema.json         # index.json JSON Schema for validation
-+-- tests/
-|   +-- test_registry.py
-|   +-- test_composer.py
-|   +-- test_validator.py
-|   +-- test_metadata.py
-+-- .planning/                    # GSD project management
-+-- CLAUDE.md                     # Project-level instructions
-+-- pyproject.toml                # Python project config (no external deps in v1)
+  templates/                          # NEW directory for v2.0
+    florence2-vision-ai/
+      workflow.json                   # Workflow format JSON (nodes[] + links[])
+      index.json                      # Generated by generate_index_entry()
+      submission.md                   # Generated by generate_notion_markdown()
+    gguf-quantized-txt2img/
+      workflow.json
+      index.json
+      submission.md
+    impact-pack-face-detailer/
+      workflow.json
+      index.json
+      submission.md
+    melbandroformer-audio-separation/
+      workflow.json
+      index.json
+      submission.md
 ```
 
-### Structure Rationale
+**Rationale for `templates/` directory:**
+- Separates composed outputs from source code (`src/`)
+- Each template is a self-contained deliverable (workflow + metadata + submission doc)
+- Matches the naming convention used in the official `Comfy-Org/workflow_templates` repo
+- Template names use kebab-case with no spaces or special characters
 
-- **`.claude/skills/`:** Each skill is a self-contained SKILL.md. Claude Code discovers them automatically. One skill per phase of the template creation workflow, plus the orchestrator.
-- **`src/` with domain modules:** Clean separation by responsibility. Each module can be developed and tested independently. The composer doesn't know about validation; the validator doesn't know about Notion docs.
-- **`data/`:** Static reference data that changes slowly. Core node lists, guidelines, and schemas are loaded at runtime by the Python modules. These are the "knowledge" the agent uses to make decisions.
-- **No external dependencies in v1:** `urllib.request` for HTTP, `json` for parsing, `pathlib` for files. This keeps installation trivial -- just clone the repo and the skills are available.
+## Template 1: ComfyUI-Florence2 -- Vision AI Captioning/Detection
 
-## Architectural Patterns
+### Purpose
+Demonstrate Florence2's multi-task vision capabilities: image captioning, object detection, and segmentation in a single workflow.
 
-### Pattern 1: Skills as LLM Instructions, Not Code Entry Points
+### Node Graph Architecture
 
-**What:** Each SKILL.md is a prompt that tells Claude _how_ to use the Python modules, not a traditional CLI entry point. The skill describes the workflow, the expected inputs/outputs, and when to call which Python function. Claude reads the skill, then executes Python via Bash tool calls.
+```
+LoadImage ──> Florence2Run ──> SaveImage
+                  ^                |
+                  |            (IMAGE output)
+DownloadAndLoadFlorence2Model     |
+                              out_mask_tensor ──> PreviewImage (mask)
+```
 
-**When to use:** Always. This is the fundamental pattern for Claude Code skills.
+### Nodes (6 nodes, 5 links)
 
-**Trade-offs:** Claude has full flexibility to adapt the workflow to the user's request (good). But the LLM can deviate from the intended flow if instructions aren't precise enough (mitigated by clear, specific SKILL.md content).
+| Node | Type | Custom? | Purpose |
+|------|------|---------|---------|
+| 1 | LoadImage | Core | Input image to analyze |
+| 2 | DownloadAndLoadFlorence2Model | Custom | Load Florence-2-large model |
+| 3 | Florence2Run | Custom | Execute vision task on image |
+| 4 | Note | Core | Explain task options and usage |
+| 5 | SaveImage | Core | Save processed output image |
+| 6 | PreviewImage | Core | Preview segmentation mask |
 
-**Example SKILL.md structure:**
-```markdown
+### Connections
+
+| Source | Output Slot | Target | Input Slot | Type |
+|--------|-------------|--------|------------|------|
+| LoadImage (1) | IMAGE | Florence2Run (3) | image | IMAGE |
+| DownloadAndLoadFlorence2Model (2) | florence2_model | Florence2Run (3) | florence2_model | FL2MODEL |
+| Florence2Run (3) | out_tensor | SaveImage (5) | images | IMAGE |
+| Florence2Run (3) | out_mask_tensor | PreviewImage (6) | images | IMAGE |
+
+### Key Widget Values
+
+| Node | Widget | Value | Notes |
+|------|--------|-------|-------|
+| DownloadAndLoadFlorence2Model (2) | model_name | "microsoft/Florence-2-large" | Large variant for best quality |
+| Florence2Run (3) | task | "detailed_caption" | Default task; user can switch to "object_detection", "segmentation", "ocr" |
+| Florence2Run (3) | text_input | "" | Empty for captioning; fill for grounding/VQA |
+| Florence2Run (3) | num_beams | 3 | Default beam search width |
+| Florence2Run (3) | max_new_tokens | 1024 | Sufficient for detailed captions |
+| Florence2Run (3) | keep_model_loaded | true | Avoid reloading between runs |
+| Note (4) | text | Task documentation | Explain available tasks: caption, detection, segmentation, OCR |
+
+### Custom Nodes Required
+- `DownloadAndLoadFlorence2Model` (ComfyUI-Florence2 by kijai)
+- `Florence2Run` (ComfyUI-Florence2 by kijai)
+
+### IO Spec
+- **Input:** 1 image (LoadImage)
+- **Output:** 1 image (SaveImage) + 1 mask preview (PreviewImage)
+- **Media type:** image
+
+### Template Metadata
+- **Name:** `florence2-vision-ai`
+- **Tags:** ["Vision AI", "Captioning", "Object Detection", "Segmentation", "OCR"]
+- **Models:** ["microsoft/Florence-2-large"]
+- **VRAM:** ~4 GB (Florence-2-large)
+
 ---
-name: comfy-discover
-description: Discover trending and new ComfyUI nodes for template inspiration
+
+## Template 2: ComfyUI-GGUF -- Quantized Model txt2img
+
+### Purpose
+Demonstrate loading GGUF-quantized diffusion models for text-to-image generation on consumer hardware with reduced VRAM requirements. Based on the Flux architecture which is the primary use case for GGUF in ComfyUI.
+
+### Node Graph Architecture
+
+```
+UnetLoaderGGUF ──────────────────> KSampler ──> VAEDecode ──> SaveImage
+                                      ^             ^
+DualCLIPLoaderGGUF ──> CLIPTextEncode │             │
+                   └──> CLIPTextEncode│             │
+                                      │             │
+EmptySD3LatentImage ──────────────────┘             │
+                                                    │
+VAELoader ──────────────────────────────────────────┘
+```
+
+### Nodes (8 nodes, 8 links)
+
+| Node | Type | Custom? | Purpose |
+|------|------|---------|---------|
+| 1 | UnetLoaderGGUF | Custom | Load GGUF-quantized diffusion model |
+| 2 | DualCLIPLoaderGGUF | Custom | Load two CLIP text encoders (GGUF format) |
+| 3 | CLIPTextEncode | Core | Positive prompt conditioning |
+| 4 | CLIPTextEncode | Core | Negative prompt conditioning |
+| 5 | EmptySD3LatentImage | Core | Create empty latent (Flux uses SD3 latent) |
+| 6 | KSampler | Core | Sampling/denoising |
+| 7 | VAEDecode | Core | Decode latent to image |
+| 8 | SaveImage | Core | Save output |
+| 9 | Note | Core | Explain GGUF benefits and model compatibility |
+
+### Connections
+
+| Source | Output Slot | Target | Input Slot | Type |
+|--------|-------------|--------|------------|------|
+| UnetLoaderGGUF (1) | MODEL | KSampler (6) | model | MODEL |
+| DualCLIPLoaderGGUF (2) | CLIP | CLIPTextEncode (3) | clip | CLIP |
+| DualCLIPLoaderGGUF (2) | CLIP | CLIPTextEncode (4) | clip | CLIP |
+| CLIPTextEncode (3) | CONDITIONING | KSampler (6) | positive | CONDITIONING |
+| CLIPTextEncode (4) | CONDITIONING | KSampler (6) | negative | CONDITIONING |
+| EmptySD3LatentImage (5) | LATENT | KSampler (6) | latent_image | LATENT |
+| KSampler (6) | LATENT | VAEDecode (7) | samples | LATENT |
+| VAELoader (10) | VAE | VAEDecode (7) | vae | VAE |
+
+### Key Widget Values
+
+| Node | Widget | Value | Notes |
+|------|--------|-------|-------|
+| UnetLoaderGGUF (1) | unet_name | "flux1-dev-Q4_K_S.gguf" | Q4 quantization balances quality/VRAM |
+| DualCLIPLoaderGGUF (2) | clip_name1 | "t5xxl_fp16.safetensors" | T5-XXL text encoder |
+| DualCLIPLoaderGGUF (2) | clip_name2 | "clip_l.safetensors" | CLIP-L text encoder |
+| DualCLIPLoaderGGUF (2) | type | "flux" | Flux model type |
+| CLIPTextEncode (3) | text | "a serene mountain landscape at golden hour, soft clouds" | Example positive prompt |
+| CLIPTextEncode (4) | text | "" | Empty negative for Flux |
+| EmptySD3LatentImage (5) | width | 1024 | Standard Flux resolution |
+| EmptySD3LatentImage (5) | height | 1024 | Standard Flux resolution |
+| EmptySD3LatentImage (5) | batch_size | 1 | Single image |
+| KSampler (6) | steps | 20 | Good quality/speed balance |
+| KSampler (6) | cfg | 1.0 | Flux uses low cfg |
+| KSampler (6) | sampler_name | "euler" | Standard for Flux |
+| KSampler (6) | scheduler | "normal" | Standard scheduler |
+| KSampler (6) | denoise | 1.0 | Full denoise for txt2img |
+
+### Custom Nodes Required
+- `UnetLoaderGGUF` (ComfyUI-GGUF by city96)
+- `DualCLIPLoaderGGUF` (ComfyUI-GGUF by city96)
+
+### IO Spec
+- **Input:** None (text-to-image, prompt is widget)
+- **Output:** 1 image (SaveImage)
+- **Media type:** image
+
+### Template Metadata
+- **Name:** `gguf-quantized-txt2img`
+- **Tags:** ["GGUF", "Quantized", "Low VRAM", "Flux", "Text to Image"]
+- **Models:** ["flux1-dev-Q4_K_S.gguf", "t5xxl_fp16.safetensors", "clip_l.safetensors", "ae.safetensors"]
+- **VRAM:** ~6 GB (Q4 quantized Flux, down from ~24 GB full precision)
+
 ---
 
-# Node Discovery
+## Template 3: ComfyUI Impact Pack -- Face Detection + Auto-Detailing
 
-## What This Does
-Surfaces interesting nodes from the ComfyUI registry for template creation.
+### Purpose
+Demonstrate the FaceDetailer node for automatic face detection and enhancement in generated images. This is the most complex template -- it combines a standard txt2img pipeline with a face post-processing pass.
 
-## How to Use
-
-1. Run the discovery script:
-   ```bash
-   python3 src/registry/highlights.py --mode trending
-   ```
-
-2. For each interesting node, get its spec:
-   ```bash
-   python3 src/registry/spec.py <node_pack_id>
-   ```
-
-3. Cross-reference with existing templates:
-   ```bash
-   python3 src/templates/coverage.py --check-node <node_pack_id>
-   ```
-
-## Output Format
-Present findings as a table: Node | Category | Downloads | Already Templated?
-```
-
-### Pattern 2: Python Modules as Claude's Toolbox
-
-**What:** Python modules expose simple functions that Claude calls via `python3 -c "..."` or `python3 src/module/script.py --args`. Each function does one thing: fetch data, validate a workflow, generate output. Claude orchestrates the sequence.
-
-**When to use:** For all data fetching, transformation, and validation. Claude should not be constructing raw HTTP requests or parsing JSON schemas inline -- the Python modules handle that.
-
-**Trade-offs:** Requires the Python modules to have clean CLI interfaces or importable functions. Slightly more upfront work than having Claude do everything inline, but dramatically more reliable and testable.
-
-### Pattern 3: Workflow JSON as the Central Artifact
-
-**What:** The ComfyUI workflow JSON is the primary data artifact that flows through the system. It's created by the composer, validated by the validator, and used to generate metadata and documentation. All components accept or produce workflow JSON.
-
-**When to use:** Whenever data moves between components.
-
-**Data flow:**
-```
-Registry data (nodes, specs)
-       |
-       v
-  [Composer] --> workflow.json --> [Validator] --> validation report
-       |                               |
-       v                               v
-  [Metadata gen] --> index entry    [User fixes issues]
-       |
-       v
-  [Doc formatter] --> notion.md + submission checklist
-```
-
-### Pattern 4: Static Data Files as Encoded Knowledge
-
-**What:** Template creation guidelines, core node lists, and the index.json schema are stored as JSON files in `data/`. The Python modules load these at runtime. This separates "what the rules are" from "how to check them."
-
-**When to use:** For any domain knowledge that changes independently of code logic.
-
-**Trade-offs:** Easier to update rules without touching code. But the data files must stay in sync with the upstream workflow_templates repo (manual process for now).
-
-## Data Flow
-
-### Discovery Flow
+### Node Graph Architecture
 
 ```
-User: "What's trending?"
+CheckpointLoaderSimple ──> CLIPTextEncode (positive) ──┐
+          │            └──> CLIPTextEncode (negative) ──┤
+          │                                             │
+          │  EmptyLatentImage ──────────────────────────┤
+          │                                             v
+          ├────────────────────────────────────────> KSampler
+          │                                             │
+          ├──────────────────────────> VAEDecode <──────┘
+          │                               │
+          │                               v
+          ├──────────────> FaceDetailer <──┘
+          │                     ^    ^
+          │               bbox_det  sam_model
+          │                  │         │
+          │  UltralyticsDetectorProvider │
+          │                    SAMLoader ┘
+          │                     │
+          │                     v
+          └──────────────> SaveImage (enhanced)
+                           PreviewImage (mask)
+```
+
+### Nodes (11 nodes, 13 links)
+
+| Node | Type | Custom? | Purpose |
+|------|------|---------|---------|
+| 1 | CheckpointLoaderSimple | Core | Load SD/SDXL checkpoint |
+| 2 | CLIPTextEncode | Core | Positive prompt |
+| 3 | CLIPTextEncode | Core | Negative prompt |
+| 4 | EmptyLatentImage | Core | Create empty latent |
+| 5 | KSampler | Core | Generate base image |
+| 6 | VAEDecode | Core | Decode latent to image |
+| 7 | UltralyticsDetectorProvider | Custom | Load YOLO face detection model |
+| 8 | SAMLoader | Custom | Load SAM segmentation model |
+| 9 | FaceDetailer | Custom | Detect and enhance faces |
+| 10 | SaveImage | Core | Save enhanced image |
+| 11 | Note | Core | Explain FaceDetailer parameters |
+
+### Connections
+
+| Source | Output Slot | Target | Input Slot | Type |
+|--------|-------------|--------|------------|------|
+| CheckpointLoaderSimple (1) | MODEL | KSampler (5) | model | MODEL |
+| CheckpointLoaderSimple (1) | CLIP | CLIPTextEncode (2) | clip | CLIP |
+| CheckpointLoaderSimple (1) | CLIP | CLIPTextEncode (3) | clip | CLIP |
+| CheckpointLoaderSimple (1) | VAE | VAEDecode (6) | vae | VAE |
+| CheckpointLoaderSimple (1) | MODEL | FaceDetailer (9) | model | MODEL |
+| CheckpointLoaderSimple (1) | CLIP | FaceDetailer (9) | clip | CLIP |
+| CheckpointLoaderSimple (1) | VAE | FaceDetailer (9) | vae | VAE |
+| CLIPTextEncode (2) | CONDITIONING | KSampler (5) | positive | CONDITIONING |
+| CLIPTextEncode (3) | CONDITIONING | KSampler (5) | negative | CONDITIONING |
+| CLIPTextEncode (2) | CONDITIONING | FaceDetailer (9) | positive | CONDITIONING |
+| CLIPTextEncode (3) | CONDITIONING | FaceDetailer (9) | negative | CONDITIONING |
+| EmptyLatentImage (4) | LATENT | KSampler (5) | latent_image | LATENT |
+| KSampler (5) | LATENT | VAEDecode (6) | samples | LATENT |
+| VAEDecode (6) | IMAGE | FaceDetailer (9) | image | IMAGE |
+| UltralyticsDetectorProvider (7) | BBOX_DETECTOR | FaceDetailer (9) | bbox_detector | BBOX_DETECTOR |
+| SAMLoader (8) | SAM_MODEL | FaceDetailer (9) | sam_model_opt | SAM_MODEL |
+| FaceDetailer (9) | IMAGE | SaveImage (10) | images | IMAGE |
+
+### Key Widget Values
+
+| Node | Widget | Value | Notes |
+|------|--------|-------|-------|
+| CheckpointLoaderSimple (1) | ckpt_name | "v1-5-pruned-emaonly.safetensors" | SD1.5 for broad compatibility |
+| CLIPTextEncode (2) | text | "portrait of a woman, detailed face, photorealistic" | Face-focused prompt |
+| CLIPTextEncode (3) | text | "blurry, low quality, deformed" | Standard negative |
+| EmptyLatentImage (4) | width | 512 | SD1.5 native resolution |
+| EmptyLatentImage (4) | height | 768 | Portrait aspect ratio |
+| KSampler (5) | steps | 25 | Good quality for portraits |
+| KSampler (5) | cfg | 7.0 | Standard SD1.5 cfg |
+| KSampler (5) | sampler_name | "euler_ancestral" | Good for portraits |
+| UltralyticsDetectorProvider (7) | model_name | "face_yolov8m.pt" | Standard face detection model |
+| SAMLoader (8) | model_name | "sam_vit_b_01ec64.pth" | SAM base for face masking |
+| FaceDetailer (9) | guide_size | 512 | Match base resolution |
+| FaceDetailer (9) | steps | 20 | Enhancement steps |
+| FaceDetailer (9) | denoise | 0.4 | Moderate denoise preserves likeness |
+| FaceDetailer (9) | bbox_threshold | 0.5 | Default face detection sensitivity |
+
+### Custom Nodes Required
+- `FaceDetailer` (ComfyUI-Impact-Pack by ltdrdata)
+- `UltralyticsDetectorProvider` (ComfyUI-Impact-Pack / Impact-Subpack)
+- `SAMLoader` (ComfyUI-Impact-Pack)
+
+### IO Spec
+- **Input:** None (txt2img, prompt is widget)
+- **Output:** 1 image (SaveImage -- enhanced with face detailing)
+- **Media type:** image
+
+### Template Metadata
+- **Name:** `impact-pack-face-detailer`
+- **Tags:** ["Face Detection", "Face Enhancement", "Portrait", "Detailing", "Impact Pack"]
+- **Models:** ["v1-5-pruned-emaonly.safetensors", "face_yolov8m.pt", "sam_vit_b_01ec64.pth"]
+- **VRAM:** ~6 GB (SD1.5 + YOLO + SAM)
+
+---
+
+## Template 4: ComfyUI-MelBandRoFormer -- Audio Stem Separation
+
+### Purpose
+Demonstrate audio source separation -- splitting a music track into vocals and instrumental stems using the MelBandRoFormer model.
+
+### Node Graph Architecture
+
+```
+LoadAudio ──> MelBandRoFormerSampler ──> SaveAudio (vocals)
+                       ^                  └──> SaveAudio (instruments)
+                       │
+MelBandRoFormerModelLoader
+```
+
+### Nodes (5 nodes, 3 links)
+
+| Node | Type | Custom? | Purpose |
+|------|------|---------|---------|
+| 1 | LoadAudio | Core | Load input audio file |
+| 2 | MelBandRoFormerModelLoader | Custom | Load separation model |
+| 3 | MelBandRoFormerSampler | Custom | Separate vocals from instruments |
+| 4 | SaveAudio | Core | Save vocals stem |
+| 5 | SaveAudio | Core | Save instrumental stem |
+| 6 | Note | Core | Explain model options and parameters |
+
+### Connections
+
+| Source | Output Slot | Target | Input Slot | Type |
+|--------|-------------|--------|------------|------|
+| LoadAudio (1) | AUDIO | MelBandRoFormerSampler (3) | audio | AUDIO |
+| MelBandRoFormerModelLoader (2) | MELROFORMERMODEL | MelBandRoFormerSampler (3) | model | MELROFORMERMODEL |
+| MelBandRoFormerSampler (3) | vocals (slot 0) | SaveAudio (4) | audio | AUDIO |
+| MelBandRoFormerSampler (3) | instruments (slot 1) | SaveAudio (5) | audio | AUDIO |
+
+### Key Widget Values
+
+| Node | Widget | Value | Notes |
+|------|--------|-------|-------|
+| LoadAudio (1) | file | "example_music.wav" | Placeholder input |
+| MelBandRoFormerModelLoader (2) | model_name | "MelBandRoFormer.ckpt" | Default separation model |
+| SaveAudio (4) | filename_prefix | "vocals" | Output prefix for vocals |
+| SaveAudio (5) | filename_prefix | "instruments" | Output prefix for instruments |
+
+### Custom Nodes Required
+- `MelBandRoFormerModelLoader` (ComfyUI-MelBandRoFormer by kijai)
+- `MelBandRoFormerSampler` (ComfyUI-MelBandRoFormer by kijai)
+
+### IO Spec
+- **Input:** 1 audio (LoadAudio)
+- **Output:** 2 audio (SaveAudio -- vocals + instruments)
+- **Media type:** audio
+
+### Template Metadata
+- **Name:** `melbandroformer-audio-separation`
+- **Tags:** ["Audio", "Source Separation", "Vocals", "Music", "Stem Splitting"]
+- **Models:** ["MelBandRoFormer.ckpt"]
+- **VRAM:** ~2 GB
+
+---
+
+## Build Order and Dependencies
+
+### Independence Analysis
+
+All 4 templates are independent of each other. None share custom nodes, none build on each other, and they target different media types (vision analysis, image generation, image post-processing, audio). They can theoretically be built in parallel.
+
+However, there is a practical build order based on complexity and pattern reuse:
+
+### Recommended Build Order
+
+```
+Phase 1: MelBandRoFormer (simplest -- 5 nodes, 3 links)
     |
     v
-/comfy-discover skill
+Phase 2: Florence2 (simple -- 6 nodes, 4 links, new output type: text/mask)
     |
     v
-registry/highlights.py --> api.comfy.org/nodes?page=N
-    |                          |
-    |                          v
-    |                    Node metadata (name, downloads, stars, created_at)
-    |                          |
-    v                          v
-registry/search.py      Score + rank (trending/rising/new heuristics)
-    |                          |
-    v                          v
-templates/coverage.py   "Already has template?" check against index.json
+Phase 3: GGUF txt2img (medium -- 9 nodes, 8 links, builds on familiar txt2img pattern)
     |
     v
-Formatted discovery report to user
+Phase 4: Impact Pack FaceDetailer (complex -- 11 nodes, 17 links, fan-out from checkpoint)
 ```
 
-### Composition Flow
+### Rationale
 
-```
-User: "Build a template for [use case]"
-    |
-    v
-/comfy-compose skill
-    |
-    +---> Option A: From scratch
-    |         |
-    |         v
-    |    registry/spec.py --> get node inputs/outputs/types
-    |         |
-    |         v
-    |    composer/builder.py --> construct node graph
-    |         |                    - Add nodes with correct class_type
-    |         |                    - Wire links with type-safe connections
-    |         |                    - Set widget_values
-    |         |                    - Add groups + notes
-    |         v
-    |    workflow.json
-    |
-    +---> Option B: Scaffold from existing
-              |
-              v
-         templates/loader.py --> fetch template JSON from repo
-              |
-              v
-         composer/scaffold.py --> clone + modify
-              |                    - Swap nodes
-              |                    - Adjust connections
-              |                    - Update widget values
-              v
-         workflow.json
-```
+| Order | Template | Nodes | Links | Why This Order |
+|-------|----------|-------|-------|----------------|
+| 1st | MelBandRoFormer | 5 | 3 | Simplest graph. Linear pipeline. Validates the compose-validate-document flow end-to-end with minimal risk. Audio media type exercises the `SaveAudio` detection in metadata. |
+| 2nd | Florence2 | 6 | 4 | Still simple but introduces a new pattern: model loader feeding a processor node with multiple outputs. Exercises mask output handling. |
+| 3rd | GGUF txt2img | 9 | 8 | Familiar txt2img pattern (mirrors existing Flux fixtures) but with GGUF loader swaps. Validates `DualCLIPLoaderGGUF` fan-out to two CLIPTextEncode nodes. |
+| 4th | Impact Pack FaceDetailer | 11 | 17 | Most complex graph. Checkpoint fan-out to both KSampler and FaceDetailer. Multiple detector providers feeding into FaceDetailer. Many widget parameters to configure. Do this last when the compose/validate/document flow is well-practiced. |
 
-### Validation Flow
+### What Each Template Validates in the Toolchain
 
-```
-workflow.json
-    |
-    v
-/comfy-validate skill
-    |
-    v
-validator/checker.py
-    |
-    +-- rules.py: core_node_preference (flag custom nodes, suggest core alternatives)
-    +-- rules.py: no_set_get_nodes (reject Set/Get nodes in templates)
-    +-- rules.py: subgraph_conventions (check subgraph usage rules)
-    +-- rules.py: color_note_standards (verify color coding and note nodes)
-    +-- rules.py: api_node_auth (flag API nodes, document auth requirements)
-    +-- rules.py: model_metadata (check models have url, hash, directory fields)
-    +-- rules.py: io_declaration (verify inputs/outputs are properly declared)
-    +-- rules.py: naming_convention (snake_case filename, no special chars)
-    |
-    v
-Validation report: PASS/WARN/FAIL per rule, with fix suggestions
+| Template | Toolchain Aspect Exercised |
+|----------|---------------------------|
+| MelBandRoFormer | Audio IO detection, custom connection type (MELROFORMERMODEL), dual output from single node |
+| Florence2 | Custom model type (FL2MODEL), text output (out_results), mask output alongside image |
+| GGUF txt2img | GGUF-specific loader nodes as drop-in replacements, DualCLIPLoader fan-out pattern |
+| Impact Pack | Complex fan-out from checkpoint, custom types (BBOX_DETECTOR, SAM_MODEL), high parameter count on FaceDetailer |
+
+## Patterns Across All Templates
+
+### Common Composition Pattern
+
+Every template follows this structure when built with `WorkflowGraph`:
+
+```python
+from src.composer.graph import WorkflowGraph
+from src.composer.node_specs import NodeSpecCache
+from src.composer.compose import save_workflow
+
+# 1. Fetch specs via MCP for all node types used
+specs = NodeSpecCache()
+# For each node type: specs.from_mcp_response(name, raw_dict_from_mcp)
+
+# 2. Build graph
+g = WorkflowGraph(specs=specs)
+
+# 3. Add nodes (returns node ID)
+loader_id = g.add_node("LoadImage", title="Input Image")
+processor_id = g.add_node("CustomProcessor", title="Process")
+
+# 4. Connect (type-checked)
+g.connect(loader_id, "IMAGE", processor_id, "image")
+
+# 5. Configure widgets
+g.set_widget(processor_id, "param_name", value)
+
+# 6. Save (auto-layout + lenient validation)
+result = save_workflow(g, "templates/my-template/workflow.json")
 ```
 
-### Documentation Flow
+### Note Node Convention
 
-```
-workflow.json + validation report + user input (title, description, tags)
-    |
-    v
-/comfy-document skill
-    |
-    v
-metadata/index_entry.py --> build index.json entry
-    |                          - name, title, description
-    |                          - mediaType, mediaSubtype
-    |                          - models[] (extracted from workflow nodes)
-    |                          - requiresCustomNodes[] (from validator)
-    |                          - io.inputs/outputs (from workflow LoadImage/SaveImage nodes)
-    |                          - tags, date, openSource, size, vram
-    |
-    v
-document/notion.py --> Notion-friendly markdown
-    |                    - Template overview
-    |                    - Node dependency table
-    |                    - Model requirements
-    |                    - Screenshot/thumbnail reminder
-    |                    - Testing checklist
-    |
-    v
-document/submission.py --> full submission package
-                            - workflow.json (the file)
-                            - index.json entry (to merge into repo)
-                            - notion.md (to paste into Notion)
-                            - pre-PR checklist
+Every template includes a Note node with black background explaining:
+- What the template does
+- What the custom node pack provides
+- Key parameters the user can adjust
+- Links to the node pack repo
+
+Note node config:
+```python
+note_id = g.add_node("Note", title="About This Template")
+# Note has no connections -- it's informational only
+# Set bgcolor to "#000000" in the node dict after creation
 ```
 
-### Key Data Flows Summary
-
-1. **Registry --> Composer:** Node specs (inputs, outputs, types) inform workflow construction. The composer needs to know what a node accepts before wiring it.
-2. **Templates --> Composer:** Existing templates serve as scaffolds. The loader provides full workflow JSON that the scaffold module can clone and modify.
-3. **Composer --> Validator:** The composed workflow JSON is the input to validation. Every rule operates on the JSON structure.
-4. **Validator --> Metadata:** Validation results feed into metadata -- `requiresCustomNodes` comes from the custom node detection rule, API node flags inform documentation.
-5. **Everything --> Document:** The doc formatter consumes workflow JSON, index entry, and validation report to produce the complete submission package.
-
-## Integration Points
-
-### External Services
-
-| Service | Integration Pattern | Notes |
-|---------|---------------------|-------|
-| **api.comfy.org** | REST API via `urllib.request` | Public, no auth needed. Rate limit unknown but generous. Cache responses (1hr TTL). |
-| **GitHub (workflow_templates)** | `gh api` CLI or raw GitHub API | Public repo. Use `gh api repos/Comfy-Org/workflow_templates/contents/...` for file access. Cache index.json locally. |
-| **comfyui-mcp** | MCP tools (`comfy_search`, `comfy_spec`, `submit_workflow`) | Already installed as MCP server. Use for cloud submission and model search. Not needed for template creation itself. |
-
-### Internal Boundaries
-
-| Boundary | Communication | Notes |
-|----------|---------------|-------|
-| Skill --> Python module | Bash tool (`python3 src/...`) | Skills instruct Claude to run Python. Output is stdout (JSON or formatted text). |
-| Registry --> Templates | Python import | `coverage.py` imports from registry to cross-reference. Shared data model for node identifiers. |
-| Composer --> Registry | Python import | Builder calls `spec.py` to get node type info for link validation. |
-| Validator --> Data files | File read (`json.load`) | Rules load `core_nodes.json` and `guidelines.json` at check time. |
-| Metadata --> Workflow JSON | Direct parse | Metadata generator reads the workflow JSON to extract models, nodes, IO declarations. |
-
-## Build Order (Dependency Chain)
-
-The components have clear dependencies that dictate implementation order:
-
-```
-Phase 1: Foundation
-  src/shared/ (HTTP, cache, config)
-  data/ (core_nodes.json, guidelines.json, index_schema.json)
-    |
-Phase 2: Discovery + Browse
-  src/registry/ (adapted from comfy-tip)
-  src/templates/browser.py + loader.py
-  /comfy-discover skill
-    |
-Phase 3: Composition
-  src/composer/ (graph model, builder, scaffold)
-  /comfy-compose skill
-    |  (needs registry for node specs)
-    |
-Phase 4: Validation
-  src/validator/ (rules, checker)
-  /comfy-validate skill
-    |  (needs composer output to validate)
-    |
-Phase 5: Documentation
-  src/metadata/ (index entry builder)
-  src/document/ (notion formatter, submission packager)
-  /comfy-document skill
-    |  (needs validator output for custom node flags)
-    |
-Phase 6: Orchestration
-  /comfy-flow skill (chains all phases)
-    |  (needs all other skills working)
+Since `Note` nodes have no connection inputs/outputs and only widget values (text content), they are added but not connected. The black background color must be set directly on the GraphNode after creation:
+```python
+node = g.get_node(note_id)
+node.bgcolor = "#000000"
+node.color = "#000000"
 ```
 
-**Rationale:** Each phase produces artifacts consumed by the next. You can't validate what you haven't composed. You can't document what you haven't validated. Discovery and browsing are independent of each other but both feed into ideation and composition.
+### Custom Connection Types
 
-## Anti-Patterns
+The existing `CONNECTION_TYPES` set in `src/composer/models.py` does not include all types used by these templates. The following custom types will flow through the wildcard (`*`) compatibility path or need to be treated as connection types:
 
-### Anti-Pattern 1: Monolithic Skill
+| Custom Type | Used By | Handling |
+|-------------|---------|----------|
+| FL2MODEL | Florence2 | Passed through as custom connection type (not in WIDGET_TYPES, not in CONNECTION_TYPES, treated as connection) |
+| MELROFORMERMODEL | MelBandRoFormer | Same -- custom connection type |
+| BBOX_DETECTOR | Impact Pack | Same -- custom connection type |
+| SAM_MODEL | Impact Pack | Same -- custom connection type |
+| DETAILER_PIPE | Impact Pack | Same -- custom connection type |
 
-**What people do:** Put all instructions in one giant SKILL.md that handles discovery through documentation.
-**Why it's wrong:** Claude loses track of context in long skills. Users can't invoke individual phases. Testing is impossible.
-**Do this instead:** One skill per phase. The orchestrator (`/comfy-flow`) chains them but each works independently.
+The existing `is_widget_input()` function handles these correctly: unknown types default to `return False` (treated as connections, not widgets). No code changes needed.
 
-### Anti-Pattern 2: Claude Constructs Raw Workflow JSON
+### Validation Behavior
 
-**What people do:** Let Claude build the entire workflow JSON by writing it character by character in a code block.
-**Why it's wrong:** ComfyUI workflow JSON is complex (node IDs, link arrays with slot indices, type-safe connections). Claude will get link wiring wrong, miss required fields, or produce invalid type connections. The JSON can be 500+ lines for real workflows.
-**Do this instead:** Python builder module that handles graph construction. Claude calls `builder.add_node("KSampler", {...})` and `builder.connect(node_a, "IMAGE", node_b, "image")`. The builder manages IDs, links, and type checking.
+All templates will produce these validation results:
 
-### Anti-Pattern 3: Hardcoded Node Knowledge
+| Rule | Florence2 | GGUF | Impact Pack | MelBandRoFormer |
+|------|-----------|------|-------------|-----------------|
+| core_node_preference | 2 warnings | 2 warnings | 3 warnings | 2 warnings |
+| no_set_get_nodes | PASS | PASS | PASS | PASS |
+| note_color_black | PASS (if configured) | PASS | PASS | PASS |
+| cloud_compatible | INFO reminder | INFO | INFO | INFO |
+| thumbnail_specs | INFO reminder | INFO | INFO | INFO |
+| api_node_auth | PASS (no API nodes) | PASS | PASS | PASS |
+| subgraph_rules | PASS (no subgraphs) | PASS | PASS | PASS |
 
-**What people do:** Encode node specs (inputs, outputs, types) directly in Python code or SKILL.md instructions.
-**Why it's wrong:** ComfyUI has 8,400+ custom nodes. New ones appear daily. Core nodes change between versions. Hardcoded specs go stale immediately.
-**Do this instead:** Fetch node specs at runtime from `api.comfy.org` (via registry module). Cache for performance. Only hardcode the core node list (which changes rarely and is needed for the "prefer core nodes" validation rule).
+Custom node warnings are expected and intentional. The templates exist to showcase these custom node packs.
 
-### Anti-Pattern 4: Treating MCP as the Primary Interface
+## Anti-Patterns to Avoid
 
-**What people do:** Route everything through the comfyui-mcp server tools.
-**Why it's wrong:** The MCP server is designed for cloud workflow submission, not template authoring. `search_nodes` is broken on cloud. The MCP server adds latency and abstraction for operations that are simpler done directly (fetching from api.comfy.org, reading from GitHub).
-**Do this instead:** Use MCP tools only for cloud-specific operations (submit_workflow, get_job_status). Use direct API calls for registry and GitHub access.
+### Anti-Pattern: Building With API Format
+**What:** Composing workflows in API format (flat dict with string keys) instead of workflow format.
+**Why bad:** The compositor, validator, and serializer all expect workflow format. API format requires a separate conversion step and loses graph structure.
+**Instead:** Always use `WorkflowGraph` which outputs workflow format (nodes[] + links[], version 0.4).
 
-## Scaling Considerations
+### Anti-Pattern: Hardcoded Widget Indices
+**What:** Setting widget values by index position (e.g., `node.widgets_values[3] = value`).
+**Why bad:** Widget order depends on the node spec. If the spec changes, indices break silently.
+**Instead:** Use `g.set_widget(node_id, "widget_name", value)` which resolves by name using the spec.
 
-This is an internal team toolkit, not a public SaaS. "Scaling" means supporting more template creators and more templates.
+### Anti-Pattern: Skipping Spec Fetch
+**What:** Adding nodes without fetching their specs from MCP first.
+**Why bad:** Without specs, `add_node` creates nodes with empty inputs/outputs/widgets. Connections cannot be type-checked. `set_widget` raises KeyError.
+**Instead:** Always fetch specs via MCP `search_nodes` before building. Cache them via `NodeSpecCache.from_mcp_response()`.
 
-| Concern | Now (5-10 creators) | Later (20+ creators) |
-|---------|---------------------|----------------------|
-| Registry API rate limits | Cache with 1hr TTL, no issues | May need longer cache or local mirror |
-| Template index size | 400 templates, index.json fits in memory | 1000+ templates: add local SQLite index for search |
-| Workflow composition | Claude + builder module, adequate | Could add template "recipes" -- predefined composition patterns |
-| Validation rules | JSON config files, easy to update | Could move to a shared rules repo if multiple tools need them |
+### Anti-Pattern: Manual Position Assignment
+**What:** Manually calculating x/y positions for each node.
+**Why bad:** Tedious, error-prone, and produces inconsistent layouts across templates.
+**Instead:** Let `auto_layout()` handle positioning. It produces clean left-to-right DAG layouts.
 
-### First Bottleneck
+## Scalability: Adding More Templates Later
 
-Registry API response time when cache is cold. Mitigate with aggressive caching and parallel fetches.
+The architecture supports adding unlimited additional templates with zero code changes. The process per template:
 
-### Second Bottleneck
+1. Create directory under `templates/`
+2. Fetch node specs via MCP
+3. Build graph with `WorkflowGraph`
+4. Save, validate, generate docs
+5. Done
 
-Template coverage analysis on a growing index. Mitigate with local index + search rather than re-parsing the full index.json each time.
+If the team wants to batch-produce templates, the pattern is fully repeatable. The only variable is the node types, connections, and widget values -- all configured at composition time, not in code.
 
 ## Sources
 
-- [Comfy-Org/workflow_templates](https://github.com/Comfy-Org/workflow_templates) -- template repo structure, index.json schema, submission process (HIGH confidence)
-- [ComfyUI Workflow JSON Spec](https://docs.comfy.org/specs/workflow_json) -- workflow format v1.0 (HIGH confidence)
-- [Template creation docs](https://docs.comfy.org/custom-nodes/workflow_templates) -- official template authoring guidance (HIGH confidence)
-- comfy-tip source (`C:/Users/minta/Projects/comfy-tip/`) -- existing registry discovery code (HIGH confidence, local)
-- comfyui-mcp reports (`C:/Users/minta/Projects/comfyui/REPORT-COMFYUI-MCP.md`, `HANDOFF-MCP-IMPROVEMENTS.md`) -- MCP capabilities and limitations (HIGH confidence, local)
-- index.json live data via GitHub API -- schema verified against 400+ template entries (HIGH confidence)
-
----
-*Architecture research for: ComfyUI template agent toolkit*
-*Researched: 2026-03-18*
+- [ComfyUI-Florence2 by kijai](https://github.com/kijai/ComfyUI-Florence2) -- Florence2 node pack
+- [Florence2Run node documentation](https://www.runcomfy.com/comfyui-nodes/ComfyUI-Florence2/Florence2Run) -- Input/output details
+- [ComfyUI-GGUF by city96](https://github.com/city96/ComfyUI-GGUF) -- GGUF loader nodes
+- [ComfyUI-GGUF node documentation](https://www.runcomfy.com/comfyui-nodes/ComfyUI-GGUF) -- Node listing
+- [ComfyUI Impact Pack by ltdrdata](https://github.com/ltdrdata/ComfyUI-Impact-Pack) -- FaceDetailer and detectors
+- [FaceDetailer node documentation](https://www.runcomfy.com/comfyui-nodes/ComfyUI-Impact-Pack/FaceDetailer) -- Input/output details
+- [FaceDetailer detailed docs](https://comfyai.run/documentation/FaceDetailer) -- Required/optional inputs
+- [ComfyUI-MelBandRoFormer by kijai](https://github.com/kijai/ComfyUI-MelBandRoFormer) -- Audio separation nodes
+- [MelBandRoFormer nodes.py source](https://github.com/kijai/ComfyUI-MelBandRoFormer/blob/main/nodes.py) -- Exact NODE_CLASS_MAPPINGS
+- [Comfy-Org workflow_templates repo](https://github.com/Comfy-Org/workflow_templates) -- Official template naming and structure conventions

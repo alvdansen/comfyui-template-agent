@@ -1,216 +1,435 @@
 # Technology Stack
 
-**Project:** ComfyUI Template Agent
-**Researched:** 2026-03-18
-**Overall confidence:** HIGH
+**Project:** ComfyUI Template Agent v2.0 -- Template Batch (4 Trending Node Packs)
+**Researched:** 2026-03-25
+**Overall confidence:** HIGH (node class names, model paths verified against GitHub source + HuggingFace)
 
-## Recommended Stack
+> This STACK.md covers what each of the 4 new templates requires: custom node packs, node class names, model files, model paths, Python dependencies, and cloud compatibility. The agent toolkit's own stack (Python, httpx, Pydantic, etc.) is unchanged from v1.0.
 
-This is a Claude Code agent toolkit, not a web app. The deliverable is a set of Claude Code skills (SKILL.md files) backed by Python modules that call ComfyUI's registry API, parse workflow JSON, and generate documentation. No framework needed -- just Python, HTTP, and schema validation.
+---
 
-### Core Runtime
+## Template 1: ComfyUI-Florence2 -- Vision AI
 
-| Technology | Version | Purpose | Why | Confidence |
-|------------|---------|---------|-----|------------|
-| Python | 3.12+ | Runtime | Already on system (3.12.10). Matches comfy-tip. MCP SDK requires >=3.10. | HIGH |
-| Claude Code Skills | SKILL.md v1 | Agent interface | This IS the distribution format. Skills = YAML frontmatter + markdown instructions. Team already uses Claude Code. No alternative. | HIGH |
+### Custom Node Pack
 
-### HTTP & API Client
+| Field | Value |
+|-------|-------|
+| Registry ID | `comfyui-florence2` |
+| GitHub | `kijai/ComfyUI-Florence2` |
+| Publisher | kijai |
+| Downloads | ~1.25M |
+| Python deps | `transformers>=4.39.0,!=4.50.*` (only declared dependency) |
+| Implicit deps | `torch`, `torchvision`, `PIL` (provided by ComfyUI runtime) |
 
-| Technology | Version | Purpose | Why | Confidence |
-|------------|---------|---------|-----|------------|
-| httpx | 0.28.1 | HTTP client for api.comfy.org and GitHub API | Sync + async in one lib. Better timeout handling, connection pooling, and error types than urllib. Modern Python standard for HTTP. | HIGH |
+### Node Class Names (NODE_CLASS_MAPPINGS)
 
-**Dependency trade-off note:** An alternative v1 approach is stdlib-only (`urllib.request`) to keep installation trivial (zero deps, just clone and go). comfy-tip already uses urllib successfully. httpx is better DX but adds a dependency. **Recommendation:** Start with httpx. The `pip install httpx` cost is negligible vs. the DX improvement (proper timeout objects, JSON auto-parsing, response status checking). If zero-dep distribution becomes important later, urllib is a viable fallback.
+| class_type | Display Name | Purpose |
+|------------|-------------|---------|
+| `DownloadAndLoadFlorence2Model` | DownloadAndLoadFlorence2Model | Downloads model from HuggingFace Hub, loads into memory |
+| `DownloadAndLoadFlorence2Lora` | DownloadAndLoadFlorence2Lora | Loads LoRA adapters for fine-tuned variants |
+| `Florence2ModelLoader` | Florence2ModelLoader | Loads model from local `models/LLM/` directory |
+| `Florence2Run` | Florence2Run | Executes vision tasks on input image |
 
-### Data Validation & Schema
+### Models Required
 
-| Technology | Version | Purpose | Why | Confidence |
-|------------|---------|---------|-----|------------|
-| Pydantic | 2.12+ | Workflow JSON models, template metadata models, validation | Type-safe models for ComfyUI workflow JSON (nodes, links, widgets), index.json template entries, and validation error reporting. Core to the "validate" phase. 5-50x faster than v1 with Rust core. | HIGH |
-| jsonschema | 4.26+ | Validate against ComfyUI's official JSON Schema | ComfyUI publishes an official `index.schema.json` for templates and a workflow JSON schema. Pydantic models the data; jsonschema validates against the official spec. Both needed. | MEDIUM |
+**Primary model (use this for template):**
 
-### MCP Server (optional, Phase 2+)
+| Model | HuggingFace ID | Size | VRAM | Precision |
+|-------|---------------|------|------|-----------|
+| Florence-2-large-ft | `microsoft/Florence-2-large-ft` | ~1.5 GB | ~2-3 GB (fp16) | fp16 recommended |
 
-| Technology | Version | Purpose | Why | Confidence |
-|------------|---------|---------|-----|------------|
-| mcp (FastMCP) | 1.26+ | MCP tool server if skills need tool-callable endpoints | Comfy-tip already has an MCP integration pattern. FastMCP decorator syntax is clean. BUT: v1 should be pure skills + Python modules. MCP server only if tools need to be callable from other agents. Pin to `mcp>=1.26,<2` since v2 is pre-alpha. | MEDIUM |
+**Why `large-ft`:** Fine-tuned variant has best task performance across all benchmarks. The `base` variant is smaller (~0.45B params) but noticeably worse at detection/segmentation. The `large` (non-ft) variant is pre-trained only. Use `large-ft` (0.77B params) as the default -- it is the community standard.
 
-### Supporting Libraries
+**Alternative models available in the dropdown (do NOT include in template):**
+- `microsoft/Florence-2-base` / `Florence-2-base-ft` -- smaller, worse quality
+- `HuggingFaceM4/Florence-2-DocVQA` -- specialized for documents only
+- `thwri/CogFlorence-2.1-Large` / `CogFlorence-2.2-Large` -- community fine-tunes
+- `gokaygokay/Florence-2-SD3-Captioner` / `Florence-2-Flux-Large` -- prompt generation specialists
+- `MiaoshouAI/Florence-2-large-PromptGen-v2.0` -- caption-focused
 
-| Library | Version | Purpose | When to Use |
-|---------|---------|---------|-------------|
-| pathlib | stdlib | File paths, template directory traversal | Always -- cross-platform path handling |
-| json | stdlib | Workflow JSON read/write | Always |
-| datetime | stdlib | Timestamp handling for registry data | Node freshness scoring |
-| re | stdlib | Pattern matching in workflow validation | Detecting node naming patterns, set/get nodes |
-| textwrap / string.Template | stdlib | Markdown template generation | Notion doc output formatting |
-| typing / dataclasses | stdlib | Type hints | Everywhere |
-| math | stdlib | Scoring heuristics | Trending/rising node scoring (log, sqrt) |
-| argparse | stdlib | CLI interfaces for modules | Every src/ module's `__main__` block |
+**Model storage path:** `ComfyUI/models/LLM/` (auto-downloaded by `DownloadAndLoadFlorence2Model`)
 
-### Development
+### Supported Tasks (Florence2Run task dropdown)
 
-| Technology | Version | Purpose | Why |
-|------------|---------|---------|-----|
-| pytest | 8.x | Testing | Standard. Validate workflow JSON parsing, template metadata generation, validation rules |
-| ruff | 0.9+ | Linting + formatting | Single tool replaces flake8 + black + isort. 10-100x faster. |
+| Task | Input | Output | Template Use Case |
+|------|-------|--------|-------------------|
+| `caption` | image | text | Basic captioning |
+| `detailed_caption` | image | text | Detailed description |
+| `more_detailed_caption` | image | text | Verbose description |
+| `dense_region_caption` | image | bboxes + labels | Region-level captioning |
+| `region_proposal` | image | bboxes | Object proposals |
+| `referring_expression_segmentation` | image + text | segmentation mask | Text-guided segmentation |
+| `caption_to_phrase_grounding` | image + text | bboxes + labels | Phrase grounding |
+| `ocr` | image | text | Text recognition |
+| `ocr_with_region` | image | quad_boxes + labels | Localized OCR |
+| `docvqa` | image + text | text | Document Q&A |
+| `prompt_gen_tags` | image | text | Tag generation |
+| `prompt_gen_mixed_caption` | image | text | SD-style prompt |
+| `prompt_gen_analyze` | image | text | Analysis |
+| `prompt_gen_mixed_caption_plus` | image | text | Enhanced prompts |
 
-## Architecture Decision: Skills + Modules, Not a Server
+### Template Recommendation
 
-The key stack decision: **this is NOT an MCP server**. It is a collection of Claude Code skills backed by importable Python modules.
+Build a **multi-task showcase** workflow: one `DownloadAndLoadFlorence2Model` node feeding multiple `Florence2Run` nodes with different tasks (`caption`, `dense_region_caption`, `ocr`, `referring_expression_segmentation`). This demonstrates Florence2's versatility in a single template. Confidence: HIGH.
 
+### Cloud Compatibility
+
+- **Pack in registry:** YES (`comfyui-florence2` on registry.comfy.org)
+- **Model auto-download:** YES (HuggingFace Hub, triggered at runtime)
+- **Model format:** safetensors (safe format, will display download links)
+- **Risk:** Model downloads ~1.5 GB on first run. Cloud environments should handle this, but first-run latency is notable.
+
+---
+
+## Template 2: ComfyUI-GGUF -- Quantized FLUX txt2img
+
+### Custom Node Pack
+
+| Field | Value |
+|-------|-------|
+| Registry ID | `ComfyUI-GGUF` |
+| GitHub | `city96/ComfyUI-GGUF` |
+| Publisher | city96 |
+| Downloads | ~1.69M |
+| Stars | ~3.4K |
+| Python deps | `gguf` (pip package) |
+
+### Node Class Names (NODE_CLASS_MAPPINGS)
+
+| class_type | TITLE | Purpose |
+|------------|-------|---------|
+| `UnetLoaderGGUF` | Unet Loader (GGUF) | Loads quantized UNET/diffusion model from GGUF file |
+| `CLIPLoaderGGUF` | CLIPLoader (GGUF) | Loads single CLIP text encoder in GGUF format |
+| `DualCLIPLoaderGGUF` | DualCLIPLoader (GGUF) | Loads two CLIP encoders (CLIP-L + T5-XXL for FLUX) |
+| `TripleCLIPLoaderGGUF` | TripleCLIPLoader (GGUF) | Three CLIP encoders (SD3 use case) |
+| `QuadrupleCLIPLoaderGGUF` | QuadrupleCLIPLoader (GGUF) | Four CLIP encoders |
+| `UnetLoaderGGUFAdvanced` | Unet Loader (GGUF/Advanced) | Advanced loader with dtype override options |
+
+### Model Folder Paths
+
+| Node | Primary Folder | Fallback Folders |
+|------|---------------|-----------------|
+| `UnetLoaderGGUF` / `UnetLoaderGGUFAdvanced` | `models/unet_gguf` | `models/diffusion_models`, `models/unet` |
+| `CLIPLoaderGGUF` / `DualCLIPLoaderGGUF` / etc. | `models/clip_gguf` | `models/clip`, `models/text_encoders` |
+
+### Models Required for FLUX.1-schnell Template
+
+**Use FLUX.1-schnell (not dev) because:** Apache 2.0 license, free for commercial use, 4-step generation (faster), identical architecture. FLUX.1-dev has a non-commercial license which complicates template distribution.
+
+**UNET (quantized):**
+
+| Model | HuggingFace | Filename | Size | Path |
+|-------|------------|----------|------|------|
+| FLUX.1-schnell Q4_K_S | `city96/FLUX.1-schnell-gguf` | `flux1-schnell-Q4_K_S.gguf` | 6.78 GB | `models/unet_gguf/` |
+| FLUX.1-schnell Q8_0 (alt) | `city96/FLUX.1-schnell-gguf` | `flux1-schnell-Q8_0.gguf` | 12.7 GB | `models/unet_gguf/` |
+
+**Why Q4_K_S as default:** Best balance of quality and VRAM. Runs on 8 GB GPUs. Q8_0 is higher quality but needs 16+ GB. Template should default to Q4_K_S with a note about Q8_0 for better hardware.
+
+**Text Encoders (CLIP-L + T5-XXL):**
+
+| Model | HuggingFace | Filename | Size | Path |
+|-------|------------|----------|------|------|
+| CLIP-L | `comfyanonymous/flux_text_encoders` | `clip_l.safetensors` | ~246 MB | `models/clip/` |
+| T5-XXL (GGUF Q8) | `city96/t5-v1_1-xxl-encoder-gguf` | `t5-v1_1-xxl-encoder-Q8_0.gguf` | 5.06 GB | `models/clip_gguf/` |
+
+**Why T5 Q8_0:** The T5-XXL encoder is 9.5 GB at fp16. Q8_0 (5 GB) preserves quality while halving VRAM. Q5_K_M (3.4 GB) is acceptable; below Q5 quality degrades noticeably. T5 does not support imatrix quants, so use Q5_K_M or larger.
+
+**VAE:**
+
+| Model | HuggingFace | Filename | Size | Path |
+|-------|------------|----------|------|------|
+| FLUX VAE | `black-forest-labs/FLUX.1-schnell` | `ae.safetensors` | ~168 MB | `models/vae/` |
+
+### Core Nodes Also Required (built into ComfyUI)
+
+The GGUF nodes replace only the model loaders. The rest of the txt2img pipeline uses core nodes:
+
+| Core Node | Purpose |
+|-----------|---------|
+| `KSampler` or `KSamplerAdvanced` | Sampling/denoising |
+| `EmptyLatentImage` | Latent space initialization |
+| `CLIPTextEncode` | Prompt encoding (uses CLIP output from GGUF loader) |
+| `VAEDecode` | Latent-to-image decoding |
+| `SaveImage` or `PreviewImage` | Output |
+
+### Template Recommendation
+
+Build a **FLUX.1-schnell txt2img** workflow: `UnetLoaderGGUF` + `DualCLIPLoaderGGUF` (CLIP-L safetensors + T5-XXL GGUF) + standard `KSampler` + `VAEDecode` pipeline. This showcases the GGUF value proposition: run FLUX on 8 GB VRAM. Confidence: HIGH.
+
+### Cloud Compatibility -- CRITICAL WARNING
+
+| Concern | Status | Impact |
+|---------|--------|--------|
+| GGUF format in templates | NOT in official templates yet | Open issue #11819 requesting GGUF templates |
+| `.gguf` model safety display | Models shown as "unsafe" in template UI | Won't auto-show download links for GGUF files |
+| Pack in registry | YES (`ComfyUI-GGUF` on registry.comfy.org) | Pack installs fine |
+| Cloud model availability | UNKNOWN | GGUF models may not be pre-cached on Comfy Cloud |
+
+**Mitigation:** The template workflow JSON is valid regardless. The model download URLs can still be specified in the `models` metadata field. Users downloading the template will need to manually place GGUF files. This is a known ecosystem gap, not a blocker for template creation, but worth documenting clearly in the submission.
+
+---
+
+## Template 3: ComfyUI Impact Pack -- Face Detection + Auto-Detailing
+
+### Custom Node Packs (TWO packs required)
+
+**Pack 1: Impact Pack**
+
+| Field | Value |
+|-------|-------|
+| Registry ID | `comfyui-impact-pack` |
+| GitHub | `ltdrdata/ComfyUI-Impact-Pack` |
+| Publisher | ltdrdata |
+| Downloads | ~2.37M |
+| Stars | ~3K |
+| Python deps | `segment-anything`, `scikit-image`, `piexif`, `transformers`, `opencv-python-headless`, `GitPython`, `scipy>=1.11.4`, `numpy`, `dill`, `matplotlib`, `sam2` (from GitHub) |
+
+**Pack 2: Impact Subpack (REQUIRED for face detection)**
+
+| Field | Value |
+|-------|-------|
+| Registry ID | `comfyui-impact-subpack` |
+| GitHub | `ltdrdata/ComfyUI-Impact-Subpack` |
+| Publisher | ltdrdata |
+| Python deps | `ultralytics` (YOLO framework) |
+
+**Why Subpack is required:** As of Impact Pack v8.0, `UltralyticsDetectorProvider` was moved out of the main pack into the Subpack. FaceDetailer requires a BBOX_DETECTOR, which comes from UltralyticsDetectorProvider. Without the Subpack, FaceDetailer has no face detection input. This is a mandatory dependency.
+
+### Node Class Names for FaceDetailer Workflow
+
+| class_type | Source Pack | Purpose |
+|------------|------------|---------|
+| `FaceDetailer` | Impact Pack | All-in-one face detect + inpaint + enhance |
+| `FaceDetailerPipe` | Impact Pack | Piped variant (alternative) |
+| `SAMLoader` | Impact Pack | Loads SAM model for segmentation refinement |
+| `UltralyticsDetectorProvider` | **Impact Subpack** | Loads YOLO face detection model, provides BBOX_DETECTOR |
+| `BboxDetectorSEGS` | Impact Pack | BBOX to segments conversion |
+| `DetailerForEach` | Impact Pack | Per-segment detailing (alternative to FaceDetailer) |
+| `SAMDetectorCombined` | Impact Pack | SAM-based detection |
+| `ImpactSimpleDetectorSEGS` | Impact Pack | Simplified detection |
+
+### Models Required
+
+**Face Detection Model (YOLO):**
+
+| Model | Source | Filename | Size | Path |
+|-------|--------|----------|------|------|
+| Face YOLOv8m | HuggingFace (Bingsu/adetailer) | `face_yolov8m.pt` | ~50 MB | `models/ultralytics/bbox/` |
+
+**Segment Anything Model:**
+
+| Model | Source | Filename | Size | Path |
+|-------|--------|----------|------|------|
+| SAM ViT-B | Facebook Research | `sam_vit_b_01ec64.pth` | ~375 MB | `models/sams/` |
+
+Download URL: `https://dl.fbaipublicfiles.com/segment_anything/sam_vit_b_01ec64.pth`
+
+**Why ViT-B (not ViT-H or ViT-L):** ViT-B is the smallest SAM variant (375 MB vs 2.4 GB for ViT-H). For face refinement, ViT-B provides adequate mask quality. Templates should minimize model download burden. ViT-B is the Impact Pack default (auto-downloaded by install.py).
+
+**Base Model (for inpainting/detailing KSampler):**
+
+The FaceDetailer node includes an internal KSampler that re-generates detected face regions. This requires a standard checkpoint model. Use whatever base model the user already has. For the template, use a standard SD1.5 or SDXL checkpoint reference.
+
+| Model | Filename | Size | Path | Note |
+|-------|----------|------|------|------|
+| SD 1.5 (example) | `v1-5-pruned-emaonly.safetensors` | ~4.2 GB | `models/checkpoints/` | Or any compatible checkpoint |
+
+### Core Nodes Also Required
+
+| Core Node | Purpose |
+|-----------|---------|
+| `CheckpointLoaderSimple` | Load base model for detailing |
+| `CLIPTextEncode` | Positive/negative prompts for face re-generation |
+| `LoadImage` | Input image |
+| `SaveImage` / `PreviewImage` | Output |
+| `VAEDecode` | If using non-FaceDetailer pipeline |
+
+### Template Recommendation
+
+Build a **FaceDetailer pipeline**: `LoadImage` -> image input to `FaceDetailer` node. The FaceDetailer takes: model (from `CheckpointLoaderSimple`), clip, vae, image, bbox_detector (from `UltralyticsDetectorProvider` with `face_yolov8m.pt`), sam_model_opt (from `SAMLoader` with `sam_vit_b_01ec64.pth`), and positive/negative conditioning. This is the canonical Impact Pack use case and the most-requested workflow. Confidence: HIGH.
+
+### Cloud Compatibility
+
+| Concern | Status | Impact |
+|---------|--------|--------|
+| Impact Pack in registry | YES | Installs via registry |
+| Impact Subpack in registry | YES | Installs via registry |
+| Two-pack dependency | Must declare BOTH in `requiresCustomNodes` | Easy to miss the Subpack |
+| SAM model auto-download | YES (install.py auto-downloads to `models/sams/`) | Works on cloud |
+| YOLO model | NOT auto-downloaded | Must be manually placed or downloaded via ComfyUI-Manager |
+| `.pt` model format | PyTorch format, may trigger safety warnings in newer PyTorch | Impact Subpack has `model-whitelist.txt` for this |
+
+---
+
+## Template 4: ComfyUI-MelBandRoFormer -- Audio Stem Separation
+
+### Custom Node Pack
+
+| Field | Value |
+|-------|-------|
+| Registry ID | `comfyui-melbandroformer` |
+| GitHub | `kijai/ComfyUI-MelBandRoFormer` |
+| Publisher | kijai |
+| Downloads | ~240K |
+| Python deps | `rotary_embedding_torch`, `einops` |
+
+### Node Class Names (NODE_CLASS_MAPPINGS)
+
+| class_type | Display Name | Purpose |
+|------------|-------------|---------|
+| `MelBandRoFormerModelLoader` | Mel-Band RoFormer Model Loader | Loads separation model from `diffusion_models/` |
+| `MelBandRoFormerSampler` | Mel-Band RoFormer Sampler | Runs separation, outputs vocals + instruments |
+
+### Custom Types
+
+| Type Name | Description |
+|-----------|-------------|
+| `MELROFORMERMODEL` | Model object passed from Loader to Sampler |
+| `AUDIO` | Audio data (input and output) |
+
+### Models Required
+
+| Model | HuggingFace | Filename | Size | Path |
+|-------|------------|----------|------|------|
+| MelBandRoformer fp16 | `Kijai/MelBandRoFormer_comfy` | `MelBandRoformer_fp16.safetensors` | 456 MB | `models/diffusion_models/` |
+| MelBandRoformer fp32 (alt) | `Kijai/MelBandRoFormer_comfy` | `MelBandRoformer_fp32.safetensors` | 913 MB | `models/diffusion_models/` |
+
+**Why fp16:** Half the size, negligible quality difference for audio separation. Use fp16 as default.
+
+HuggingFace URL: `https://huggingface.co/Kijai/MelBandRoFormer_comfy/tree/main`
+
+### Core Nodes Also Required
+
+| Core Node | Purpose |
+|-----------|---------|
+| `LoadAudio` | Load input audio file (core ComfyUI audio node) |
+| `SaveAudioMP3` or `SaveAudio` | Save separated stems |
+| `PreviewAudio` | Preview output in UI |
+
+### Sampler Parameters
+
+| Parameter | Default | Notes |
+|-----------|---------|-------|
+| `num_overlap` | 4 | Higher = better quality, slower. 4 is good default. |
+| `chunk_size` | 352800 | Audio chunk length. Default handles ~8s at 44.1kHz. |
+
+### Template Recommendation
+
+Build a **vocal/instrumental separation** workflow: `LoadAudio` -> `MelBandRoFormerModelLoader` + `MelBandRoFormerSampler` -> two output branches: `SaveAudio` (vocals) + `SaveAudio` (instruments). Simple, clean, demonstrates the pack's core value. Confidence: HIGH.
+
+### Cloud Compatibility
+
+| Concern | Status | Impact |
+|---------|--------|--------|
+| Pack in registry | YES (publisher: kijai) | Installs via registry |
+| Model format | `.safetensors` | Safe format, will display download links |
+| Model size | 456 MB (fp16) | Reasonable download |
+| Audio I/O | Requires ComfyUI audio node support | ComfyUI has native `LoadAudio`/`SaveAudio` nodes (added ~2024) |
+| Risk | Audio templates are less common in the library | May need extra testing to verify audio pipeline works end-to-end on cloud |
+
+---
+
+## Cross-Template Dependencies
+
+### Shared Dependencies
+
+| Dependency | Used By | Notes |
+|------------|---------|-------|
+| `transformers` | Florence2, Impact Pack | Both need HuggingFace transformers; version ranges should be compatible |
+| `torch` / `torchvision` | All 4 | Provided by ComfyUI runtime, not declared by packs |
+| `numpy` | Impact Pack, MelBandRoFormer (via einops) | Universal, no conflicts |
+
+### No Inter-Template Dependencies
+
+The 4 templates are fully independent. No template requires nodes from another template's pack. Each can be built, tested, and submitted independently in any order.
+
+### Pack Install Summary
+
+| Template | Custom Packs Required | Total Model Download |
+|----------|----------------------|---------------------|
+| Florence2 | 1 (`comfyui-florence2`) | ~1.5 GB |
+| GGUF FLUX | 1 (`ComfyUI-GGUF`) | ~12 GB (Q4_K_S UNET + Q8 T5 + CLIP-L + VAE) |
+| Impact Pack | 2 (`comfyui-impact-pack` + `comfyui-impact-subpack`) | ~4.6 GB (checkpoint + SAM + YOLO) |
+| MelBandRoFormer | 1 (`comfyui-melbandroformer`) | ~456 MB |
+
+---
+
+## What NOT to Include
+
+| Exclusion | Why |
+|-----------|-----|
+| FLUX.1-dev models | Non-commercial license. Use FLUX.1-schnell (Apache 2.0) for templates. |
+| Florence-2-base variants | Noticeably worse performance. Always use `large-ft`. |
+| SAM ViT-H / ViT-L | 2.4 GB / 1.2 GB respectively. ViT-B is sufficient for face detailing. |
+| T5-XXL below Q5 quantization | Quality degrades noticeably. Q5_K_M is the minimum recommended. |
+| Impact Pack's 200+ non-FaceDetailer nodes | Template should be focused. Only use the face detection + detailing subset. |
+| ComfyUI-Florence2SAM2 | Different pack by different author (rdancer). Not the trending one (kijai). |
+| MelBandRoFormer fp32 model | Twice the size for negligible quality gain. Default to fp16. |
+| `TripleCLIPLoaderGGUF` / `QuadrupleCLIPLoaderGGUF` | For SD3/other architectures, not FLUX. |
+| `UnetLoaderGGUFAdvanced` | Standard `UnetLoaderGGUF` is sufficient for the template. |
+
+---
+
+## Template index.json Model Metadata Format
+
+Each template's models should be declared in the workflow JSON's node `properties.models` field:
+
+```json
+{
+  "name": "model_filename.safetensors",
+  "url": "https://huggingface.co/.../resolve/main/model_filename.safetensors?download=true",
+  "hash": "SHA256_value",
+  "hash_type": "SHA256",
+  "directory": "model_subfolder"
+}
 ```
-comfyui-template-agent/
-  .claude/skills/
-    comfy-discover/SKILL.md     # Node discovery & trend surfacing
-    comfy-ideate/SKILL.md       # Template gap analysis & concept generation
-    comfy-compose/SKILL.md      # Workflow JSON creation
-    comfy-validate/SKILL.md     # Guideline compliance checking
-    comfy-document/SKILL.md     # Metadata + Notion markdown generation
-    comfy-flow/SKILL.md         # Guided end-to-end orchestrator
-  src/
-    registry/                   # api.comfy.org client
-      highlights.py             # Adapted from comfy-tip
-      search.py                 # Node pack search
-      spec.py                   # Node I/O spec retrieval
-      cache.py                  # Shared HTTP + disk caching
-    templates/                  # workflow_templates repo interface
-      browser.py                # Browse/search templates
-      coverage.py               # Gap analysis
-      loader.py                 # Fetch template JSON
-    composer/                   # Workflow construction
-      graph.py                  # Node graph data model
-      builder.py                # Fluent API for building workflows
-      scaffold.py               # Clone + modify existing templates
-      types.py                  # ComfyUI type system
-    validator/                  # Validation engine
-      rules.py                  # Individual validation rules
-      checker.py                # Run all rules, produce report
-      guidelines.py             # Encoded template guidelines
-    metadata/                   # Template metadata
-      index_entry.py            # Build index.json entries
-      schema.py                 # index.json schema validation
-    document/                   # Output generation
-      notion.py                 # Notion markdown formatter
-      submission.py             # Full submission package
-    shared/                     # Cross-cutting concerns
-      http.py                   # HTTP client wrapper
-      cache.py                  # Disk cache with TTL
-      config.py                 # API URLs, cache paths
-  data/
-    core_nodes.json             # Core node whitelist (for validation)
-    guidelines.json             # Machine-readable template rules
-    index_schema.json           # index.json JSON Schema
-  tests/
-  pyproject.toml
-```
 
-**Why skills, not MCP server:**
-1. Claude Code skills are the native interface -- the team already uses Claude Code
-2. Skills can call Python modules directly via allowed-tools (Bash, Read, Write)
-3. No server process to manage, no transport protocol overhead
-4. MCP server adds complexity without benefit for a single-user agent toolkit
-5. comfy-tip already demonstrates the skill pattern works
+**GGUF caveat:** The template system displays `.gguf` files as "unsafe" and won't auto-show download links. The metadata can still be included, but users may need manual download instructions. This is an ecosystem limitation, not a template authoring problem.
 
-**When to add MCP:** Only if other agents/clients need to call these tools programmatically (Phase 2+ consideration).
+**Model `directory` values by template:**
 
-## Alternatives Considered
+| Template | directory values |
+|----------|-----------------|
+| Florence2 | `LLM` |
+| GGUF FLUX | `unet_gguf`, `clip_gguf`, `clip`, `vae` |
+| Impact Pack | `checkpoints`, `sams`, `ultralytics/bbox` |
+| MelBandRoFormer | `diffusion_models` |
 
-| Category | Recommended | Alternative | Why Not |
-|----------|-------------|-------------|---------|
-| HTTP client | httpx | urllib (stdlib) | urllib works (comfy-tip uses it) but lacks timeout config, connection pooling, proper error types. httpx is minimal overhead for much better DX. Acceptable fallback if zero-dep is critical. |
-| HTTP client | httpx | requests | No async support, no HTTP/2. httpx is strictly better for new projects. |
-| HTTP client | httpx | aiohttp | Async-only. We need sync for skill scripts. httpx does both. |
-| Validation | Pydantic + jsonschema | Pydantic alone | ComfyUI publishes official JSON Schema files. Need jsonschema lib to validate against those. Pydantic models our internal types. |
-| Validation | Pydantic + jsonschema | dataclasses + jsonschema | Pydantic's validation, serialization, and error messages are far superior. Worth the dependency. |
-| Agent interface | Claude Code Skills | Custom MCP server | Unnecessary complexity. Skills are the right abstraction for guided workflows. |
-| Agent interface | Claude Code Skills | LangChain / CrewAI | Massive overkill. This is one agent (Claude Code) with structured skills, not a multi-agent framework. |
-| Formatting | stdlib string.Template | Jinja2 | Markdown output is simple enough. Jinja2 adds a dependency for templates that are mostly string concatenation. |
-| Linting | ruff | flake8 + black | ruff replaces both, 10-100x faster. No reason to use the old stack. |
-
-## What NOT to Use
-
-| Technology | Why Not |
-|------------|---------|
-| LangChain / LlamaIndex | This is a Claude Code skill toolkit, not an LLM orchestration framework. Claude Code IS the orchestrator. |
-| FastAPI / Flask | No web server needed. Skills run as CLI scripts inside Claude Code. |
-| SQLite / any database | JSON file cache is sufficient. Template data is read from GitHub repo + registry API. ~400 templates and ~8,400 nodes both fit in memory. |
-| Docker | Skills run in the user's Python environment alongside Claude Code. Containerization adds friction for zero benefit. |
-| CrewAI / AutoGen / multi-agent frameworks | Wrong abstraction. One agent (Claude), multiple skills. |
-| comfyui-mcp-server (Comfy-Org) | That's for workflow execution/submission to Comfy Cloud. This agent is for template creation/validation. Different concern. Complement, not replace. |
-| RL/GRPO training pipelines | ComfySearch/ComfyGPT use GRPO for workflow generation. Overkill for internal tooling with human-in-the-loop. Borrow their decomposition patterns, not their training infrastructure. |
-
-## Existing Code to Reuse
-
-| Source | What to Reuse | How |
-|--------|---------------|-----|
-| comfy-tip/highlights.py | Registry API client, trending/scoring heuristics, cache pattern | Adapt into src/registry/highlights.py. Upgrade urllib to httpx. Keep scoring logic intact. |
-| comfy-tip/mcp_integration.py | MCP tool definition pattern | Reference for future MCP server phase, not v1. |
-| comfy-tip/skill/SKILL.md | SKILL.md format, frontmatter structure | Template for new skills. |
-| comfyui/ MCP improvements | API node auth detection, silent failure patterns | Inform the validation rules -- detect API nodes, warn about auth requirements. |
-
-## External APIs
-
-| API | Base URL | Auth | Rate Limits | Purpose |
-|-----|----------|------|-------------|---------|
-| ComfyUI Registry | api.comfy.org | None (public) | Generous, unknown exact limits | Node discovery, metadata, downloads, stars |
-| GitHub API | api.github.com | Optional (GITHUB_TOKEN raises limit from 60/hr to 5000/hr) | 60/hr unauthenticated | Read workflow_templates repo, browse existing templates |
-| GitHub Raw | raw.githubusercontent.com | None | No known limits | Fetch template JSON files, index.json, schema files directly |
-
-## Installation
-
-```bash
-# Core dependencies (3 packages)
-pip install httpx pydantic "jsonschema>=4.26"
-
-# Dev dependencies
-pip install pytest ruff
-
-# Optional: MCP server (Phase 2+)
-pip install "mcp>=1.26,<2"
-```
-
-Minimal: 3 production dependencies (httpx, pydantic, jsonschema). Everything else is stdlib.
-
-**pyproject.toml approach:**
-```toml
-[project]
-name = "comfyui-template-agent"
-requires-python = ">=3.12"
-dependencies = [
-    "httpx>=0.28",
-    "pydantic>=2.12",
-    "jsonschema>=4.26",
-]
-
-[project.optional-dependencies]
-dev = ["pytest>=8.0", "ruff>=0.9"]
-mcp = ["mcp>=1.26,<2"]
-```
-
-## ComfyUI-Specific Schema Knowledge
-
-The workflow JSON schema (v1.0, from docs.comfy.org) has these key structures that Pydantic models must cover:
-
-- **Top-level**: `version` (always 1), `state` (ID tracking), `nodes` (array), optional `links`, `groups`, `reroutes`, `extra`, `models`
-- **Node**: `id`, `type`, `pos`, `size`, `flags`, `order`, `mode`, `properties`, optional `inputs`/`outputs`/`widgets_values`/`color`/`bgcolor`
-- **Link**: 6-element array: `[link_id, origin_id, origin_slot, target_id, target_slot, type]`
-- **Template index.json**: `moduleName`, `title`, `type` (image/video/audio), `templates[]` with `name`, `description`, `mediaType`, `mediaSubtype`, `models[]`, `tags[]`, `io`, `thumbnailVariant`, `requiresCustomNodes[]`
-- **Blueprint format**: Native ComfyUI subgraph JSON -- same node/link structure but in `definitions.subgraphs`
-
-**Two JSON formats (critical pitfall):** Workflow format (UI, has nodes/links/pos/size) vs API format (execution, has class_type/inputs with connection refs). Templates use WORKFLOW format. Format detection must be the first validation step.
+---
 
 ## Sources
 
-- [ComfyUI Workflow JSON Schema](https://docs.comfy.org/specs/workflow_json) -- Official spec, v1.0 (HIGH confidence)
-- [ComfyUI Registry API](https://docs.comfy.org/registry/api-reference/overview) -- Node search, metadata (HIGH confidence)
-- [Comfy-Org/workflow_templates](https://github.com/Comfy-Org/workflow_templates) -- Template repo structure, index.json schema (HIGH confidence)
-- [MCP Python SDK](https://github.com/modelcontextprotocol/python-sdk) -- v1.26.0, FastMCP pattern (HIGH confidence, verified on PyPI)
-- [Claude Code Skills docs](https://code.claude.com/docs/en/skills) -- SKILL.md format specification (HIGH confidence)
-- [anthropics/skills](https://github.com/anthropics/skills) -- Official skills repo, format reference (HIGH confidence)
-- [httpx on PyPI](https://pypi.org/project/httpx/) -- v0.28.1, verified (HIGH confidence)
-- [pydantic on PyPI](https://pypi.org/project/pydantic/) -- v2.12.5, requires Python >=3.9 (HIGH confidence)
-- [jsonschema on PyPI](https://pypi.org/project/jsonschema/) -- v4.26.0, requires Python >=3.10 (HIGH confidence)
-- [FastMCP tools docs](https://gofastmcp.com/servers/tools) -- Decorator pattern reference (HIGH confidence)
-- [SKILL.md Format Specification](https://deepwiki.com/anthropics/skills/2.2-skill.md-format-specification) -- Frontmatter fields (MEDIUM confidence)
+### Florence2
+- [kijai/ComfyUI-Florence2 GitHub](https://github.com/kijai/ComfyUI-Florence2) -- node source code, NODE_CLASS_MAPPINGS (HIGH confidence)
+- [ComfyUI-Florence2 nodes.py](https://github.com/kijai/ComfyUI-Florence2/blob/main/nodes.py) -- task types, model list (HIGH confidence)
+- [ComfyUI-Florence2 pyproject.toml](https://github.com/kijai/ComfyUI-Florence2/blob/main/pyproject.toml) -- dependencies (HIGH confidence)
+- [microsoft/Florence-2-large on HuggingFace](https://huggingface.co/microsoft/Florence-2-large) -- model specs, 0.77B params (HIGH confidence)
+- [Florence2 Nodes DeepWiki](https://deepwiki.com/kijai/ComfyUI-Florence2/4-florence2-nodes) -- task enumeration (MEDIUM confidence)
+
+### GGUF
+- [city96/ComfyUI-GGUF GitHub](https://github.com/city96/ComfyUI-GGUF) -- node source, architecture (HIGH confidence)
+- [city96/ComfyUI-GGUF nodes.py](https://github.com/city96/ComfyUI-GGUF/blob/main/nodes.py) -- NODE_CLASS_MAPPINGS, folder paths (HIGH confidence)
+- [city96/FLUX.1-schnell-gguf on HuggingFace](https://huggingface.co/city96/FLUX.1-schnell-gguf) -- model files, sizes (HIGH confidence)
+- [city96/FLUX.1-dev-gguf on HuggingFace](https://huggingface.co/city96/FLUX.1-dev-gguf) -- model files (HIGH confidence)
+- [city96/t5-v1_1-xxl-encoder-gguf on HuggingFace](https://huggingface.co/city96/t5-v1_1-xxl-encoder-gguf) -- T5 encoder GGUF files (HIGH confidence)
+- [comfyanonymous/flux_text_encoders on HuggingFace](https://huggingface.co/comfyanonymous/flux_text_encoders/blob/main/clip_l.safetensors) -- CLIP-L model (HIGH confidence)
+- [GGUF Template Request Issue #11819](https://github.com/Comfy-Org/ComfyUI/issues/11819) -- GGUF not yet in official templates (HIGH confidence)
+
+### Impact Pack
+- [ltdrdata/ComfyUI-Impact-Pack GitHub](https://github.com/ltdrdata/ComfyUI-Impact-Pack) -- overview, node list (HIGH confidence)
+- [ComfyUI-Impact-Pack __init__.py](https://github.com/ltdrdata/ComfyUI-Impact-Pack/blob/Main/__init__.py) -- NODE_CLASS_MAPPINGS (HIGH confidence)
+- [ltdrdata/ComfyUI-Impact-Subpack GitHub](https://github.com/ltdrdata/ComfyUI-Impact-Subpack) -- UltralyticsDetectorProvider, model paths (HIGH confidence)
+- [ComfyUI-Impact-Pack requirements.txt](https://github.com/ltdrdata/ComfyUI-Impact-Pack/blob/Main/requirements.txt) -- Python dependencies (HIGH confidence)
+- [Impact Pack Installation DeepWiki](https://deepwiki.com/ltdrdata/ComfyUI-Impact-Pack/2-installation-and-configuration) -- model download paths (MEDIUM confidence)
+- [FaceDetailer tutorial - ThinkDiffusion](https://learn.thinkdiffusion.com/comfyui-face-detailer/) -- workflow pattern (MEDIUM confidence)
+
+### MelBandRoFormer
+- [kijai/ComfyUI-MelBandRoFormer GitHub](https://github.com/kijai/ComfyUI-MelBandRoFormer) -- overview (HIGH confidence)
+- [ComfyUI-MelBandRoFormer nodes.py](https://github.com/kijai/ComfyUI-MelBandRoFormer/blob/main/nodes.py) -- NODE_CLASS_MAPPINGS, types (HIGH confidence)
+- [Kijai/MelBandRoFormer_comfy on HuggingFace](https://huggingface.co/Kijai/MelBandRoFormer_comfy/tree/main) -- model files, exact sizes (HIGH confidence)
+- [ComfyUI-MelBandRoFormer pyproject.toml](https://github.com/kijai/ComfyUI-MelBandRoFormer/blob/main/pyproject.toml) -- dependencies (HIGH confidence)
+
+### General
+- [Comfy-Org/workflow_templates GitHub](https://github.com/Comfy-Org/workflow_templates) -- template format, model metadata schema (HIGH confidence)
+- [ComfyUI Workflow JSON Spec](https://docs.comfy.org/specs/workflow_json) -- workflow format (HIGH confidence)
+- [ComfyUI FLUX tutorial](https://docs.comfy.org/tutorials/flux/flux-1-text-to-image) -- FLUX workflow structure (HIGH confidence)
