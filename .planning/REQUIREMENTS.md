@@ -54,7 +54,42 @@
 - [x] **TEST-03**: README documents all skills, setup instructions, and usage examples
 - [x] **TEST-04**: Repo is clean and ready for sharing (gitignore, no secrets, no temp files)
 
-## v2 Requirements
+## v2.0 Requirements — Template Batch: Trending Node Coverage
+
+### Tooling Fixes
+
+- [ ] **TOOL-01**: core_nodes.json includes LoadAudio, SaveAudio, EmptyLatentAudio so audio workflows validate correctly
+- [ ] **TOOL-02**: metadata.py _detect_models recognizes .gguf model files in workflow JSON
+
+### MelBandRoFormer Template
+
+- [ ] **MELB-01**: Workflow JSON with MelBandRoFormerModelLoader + MelBandRoFormerSampler producing vocal and instrumental stems
+- [ ] **MELB-02**: Workflow passes strict validation with zero errors (core_node_preference warnings expected)
+- [ ] **MELB-03**: index.json metadata with correct requiresCustomNodes, model paths, and IO spec
+- [ ] **MELB-04**: Notion submission markdown ready for paste
+
+### Florence2 Template
+
+- [ ] **FLOR-01**: Workflow JSON with DownloadAndLoadFlorence2Model + Florence2Run demonstrating captioning task
+- [ ] **FLOR-02**: Workflow passes strict validation with zero errors
+- [ ] **FLOR-03**: index.json metadata with correct model reference and IO spec
+- [ ] **FLOR-04**: Notion submission markdown ready for paste
+
+### GGUF Template
+
+- [ ] **GGUF-01**: Workflow JSON with UnetLoaderGGUF + DualCLIPLoaderGGUF driving a FLUX.1-schnell txt2img pipeline
+- [ ] **GGUF-02**: Workflow passes strict validation with zero errors
+- [ ] **GGUF-03**: index.json metadata with manual model installation notes for .gguf files
+- [ ] **GGUF-04**: Notion submission markdown with prominent GGUF setup instructions
+
+### Impact Pack Template
+
+- [ ] **IMPC-01**: Workflow JSON with FaceDetailer + UltralyticsDetectorProvider + SAMLoader for automatic face enhancement
+- [ ] **IMPC-02**: Workflow passes strict validation with zero errors
+- [ ] **IMPC-03**: index.json metadata declaring both comfyui-impact-pack AND comfyui-impact-subpack
+- [ ] **IMPC-04**: Notion submission markdown ready for paste
+
+## Future Requirements
 
 ### Discovery
 
@@ -86,8 +121,14 @@
 | Template review/approval workflow | Organizational process, not tooling scope |
 | Mobile or web UI | Claude Code skills are the interface |
 | Real-time collaboration | Single-user tool; team coordination via Notion |
+| Florence2 LoRA fine-tuning | Niche models, adds complexity beyond template scope |
+| GGUF LoRA integration | Experimental with quantized models, limited support |
+| Impact Pack multi-pass detailing | Advanced pattern, not the 90% use case |
+| MelBandRoFormer batch processing | LoadAudio is single-file, batching requires loop complexity |
 
 ## Traceability
+
+### v1.0 (Complete)
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
@@ -116,11 +157,35 @@
 | ORCH-01 | Phase 5 | Complete |
 | ORCH-02 | Phase 5 | Complete |
 
+### v2.0 (Active)
+
+| Requirement | Phase | Status |
+|-------------|-------|--------|
+| TOOL-01 | — | Pending |
+| TOOL-02 | — | Pending |
+| MELB-01 | — | Pending |
+| MELB-02 | — | Pending |
+| MELB-03 | — | Pending |
+| MELB-04 | — | Pending |
+| FLOR-01 | — | Pending |
+| FLOR-02 | — | Pending |
+| FLOR-03 | — | Pending |
+| FLOR-04 | — | Pending |
+| GGUF-01 | — | Pending |
+| GGUF-02 | — | Pending |
+| GGUF-03 | — | Pending |
+| GGUF-04 | — | Pending |
+| IMPC-01 | — | Pending |
+| IMPC-02 | — | Pending |
+| IMPC-03 | — | Pending |
+| IMPC-04 | — | Pending |
+
 **Coverage:**
-- v1 requirements: 24 total
-- Mapped to phases: 24
-- Unmapped: 0
+- v1 requirements: 24 total (all complete)
+- v2.0 requirements: 18 total
+- Mapped to phases: 0 (awaiting roadmap)
+- Unmapped: 18
 
 ---
 *Requirements defined: 2026-03-18*
-*Last updated: 2026-03-18 after roadmap creation*
+*Last updated: 2026-03-25 after v2.0 milestone requirements definition*
