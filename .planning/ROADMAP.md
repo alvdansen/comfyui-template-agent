@@ -21,11 +21,11 @@
 
 ### v2.0 Template Batch -- Trending Node Coverage
 
-- [ ] **Phase 7: Tooling Fixes** - Fix core_nodes.json audio gaps and metadata.py GGUF detection
-- [ ] **Phase 8: MelBandRoFormer Template** - Audio stem separation workflow (5 nodes, linear pipeline)
-- [ ] **Phase 9: Florence2 Template** - Vision AI captioning/detection workflow (6 nodes, multi-output)
-- [ ] **Phase 10: GGUF Template** - Quantized FLUX.1-schnell txt2img workflow (9 nodes, GGUF loaders)
-- [ ] **Phase 11: Impact Pack Template** - Face detection + auto-detailing workflow (11 nodes, fan-out)
+- [x] **Phase 7: Tooling Fixes** - Fix core_nodes.json audio gaps and metadata.py GGUF detection
+- [x] **Phase 8: MelBandRoFormer Template** - Audio stem separation workflow (5 nodes, linear pipeline)
+- [x] **Phase 9: Florence2 Template** - Vision AI captioning/detection workflow (6 nodes, multi-output)
+- [x] **Phase 10: GGUF Template** - Quantized FLUX.1-schnell txt2img workflow (9 nodes, GGUF loaders)
+- [x] **Phase 11: Impact Pack Template** - Face detection + auto-detailing workflow (11 nodes, fan-out)
 
 ## Phase Details
 
@@ -99,8 +99,8 @@ Phase 7 first (prerequisite), then Phases 8-11 can execute in parallel.
 | 4. Composition | v1.0 | 3/3 | Complete | 2026-03-19 |
 | 5. Documentation + Orchestration | v1.0 | 2/2 | Complete | 2026-03-20 |
 | 6. Testing & Distribution | v1.0 | 3/3 | Complete | 2026-03-20 |
-| 7. Tooling Fixes | v2.0 | 0/0 | Not started | - |
-| 8. MelBandRoFormer Template | v2.0 | 0/0 | Not started | - |
-| 9. Florence2 Template | v2.0 | 0/0 | Not started | - |
-| 10. GGUF Template | v2.0 | 0/0 | Not started | - |
-| 11. Impact Pack Template | v2.0 | 0/0 | Not started | - |
+| 7. Tooling Fixes | v2.0 | 1/1 | Complete | 2026-03-25 |
+| 8. MelBandRoFormer Template | v2.0 | 1/1 | Complete | 2026-03-25 |
+| 9. Florence2 Template | v2.0 | 1/1 | Complete | 2026-03-25 |
+| 10. GGUF Template | v2.0 | 1/1 | Complete | 2026-03-25 |
+| 11. Impact Pack Template | v2.0 | 1/1 | Complete | 2026-03-25 |

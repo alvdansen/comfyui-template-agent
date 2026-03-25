@@ -58,36 +58,36 @@
 
 ### Tooling Fixes
 
-- [ ] **TOOL-01**: core_nodes.json includes LoadAudio, SaveAudio, EmptyLatentAudio so audio workflows validate correctly
-- [ ] **TOOL-02**: metadata.py _detect_models recognizes .gguf model files in workflow JSON
+- [x] **TOOL-01**: core_nodes.json includes LoadAudio, SaveAudio, EmptyLatentAudio so audio workflows validate correctly
+- [x] **TOOL-02**: metadata.py _detect_models recognizes .gguf model files in workflow JSON
 
 ### MelBandRoFormer Template
 
-- [ ] **MELB-01**: Workflow JSON with MelBandRoFormerModelLoader + MelBandRoFormerSampler producing vocal and instrumental stems
-- [ ] **MELB-02**: Workflow passes strict validation with zero errors (core_node_preference warnings expected)
-- [ ] **MELB-03**: index.json metadata with correct requiresCustomNodes, model paths, and IO spec
-- [ ] **MELB-04**: Notion submission markdown ready for paste
+- [x] **MELB-01**: Workflow JSON with MelBandRoFormerModelLoader + MelBandRoFormerSampler producing vocal and instrumental stems
+- [x] **MELB-02**: Workflow passes strict validation with zero errors (core_node_preference warnings expected)
+- [x] **MELB-03**: index.json metadata with correct requiresCustomNodes, model paths, and IO spec
+- [x] **MELB-04**: Notion submission markdown ready for paste
 
 ### Florence2 Template
 
-- [ ] **FLOR-01**: Workflow JSON with DownloadAndLoadFlorence2Model + Florence2Run demonstrating captioning task
-- [ ] **FLOR-02**: Workflow passes strict validation with zero errors
-- [ ] **FLOR-03**: index.json metadata with correct model reference and IO spec
-- [ ] **FLOR-04**: Notion submission markdown ready for paste
+- [x] **FLOR-01**: Workflow JSON with DownloadAndLoadFlorence2Model + Florence2Run demonstrating captioning task
+- [x] **FLOR-02**: Workflow passes strict validation with zero errors
+- [x] **FLOR-03**: index.json metadata with correct model reference and IO spec
+- [x] **FLOR-04**: Notion submission markdown ready for paste
 
 ### GGUF Template
 
-- [ ] **GGUF-01**: Workflow JSON with UnetLoaderGGUF + DualCLIPLoaderGGUF driving a FLUX.1-schnell txt2img pipeline
-- [ ] **GGUF-02**: Workflow passes strict validation with zero errors
-- [ ] **GGUF-03**: index.json metadata with manual model installation notes for .gguf files
-- [ ] **GGUF-04**: Notion submission markdown with prominent GGUF setup instructions
+- [x] **GGUF-01**: Workflow JSON with UnetLoaderGGUF + DualCLIPLoaderGGUF driving a FLUX.1-schnell txt2img pipeline
+- [x] **GGUF-02**: Workflow passes strict validation with zero errors
+- [x] **GGUF-03**: index.json metadata with manual model installation notes for .gguf files
+- [x] **GGUF-04**: Notion submission markdown with prominent GGUF setup instructions
 
 ### Impact Pack Template
 
-- [ ] **IMPC-01**: Workflow JSON with FaceDetailer + UltralyticsDetectorProvider + SAMLoader for automatic face enhancement
-- [ ] **IMPC-02**: Workflow passes strict validation with zero errors
-- [ ] **IMPC-03**: index.json metadata declaring both comfyui-impact-pack AND comfyui-impact-subpack
-- [ ] **IMPC-04**: Notion submission markdown ready for paste
+- [x] **IMPC-01**: Workflow JSON with FaceDetailer + UltralyticsDetectorProvider + SAMLoader for automatic face enhancement
+- [x] **IMPC-02**: Workflow passes strict validation with zero errors
+- [x] **IMPC-03**: index.json metadata declaring both comfyui-impact-pack AND comfyui-impact-subpack
+- [x] **IMPC-04**: Notion submission markdown ready for paste
 
 ## Future Requirements
 
@@ -161,31 +161,31 @@
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| TOOL-01 | Phase 7 | Pending |
-| TOOL-02 | Phase 7 | Pending |
-| MELB-01 | Phase 8 | Pending |
-| MELB-02 | Phase 8 | Pending |
-| MELB-03 | Phase 8 | Pending |
-| MELB-04 | Phase 8 | Pending |
-| FLOR-01 | Phase 9 | Pending |
-| FLOR-02 | Phase 9 | Pending |
-| FLOR-03 | Phase 9 | Pending |
-| FLOR-04 | Phase 9 | Pending |
-| GGUF-01 | Phase 10 | Pending |
-| GGUF-02 | Phase 10 | Pending |
-| GGUF-03 | Phase 10 | Pending |
-| GGUF-04 | Phase 10 | Pending |
-| IMPC-01 | Phase 11 | Pending |
-| IMPC-02 | Phase 11 | Pending |
-| IMPC-03 | Phase 11 | Pending |
-| IMPC-04 | Phase 11 | Pending |
+| TOOL-01 | Phase 7 | Complete |
+| TOOL-02 | Phase 7 | Complete |
+| MELB-01 | Phase 8 | Complete |
+| MELB-02 | Phase 8 | Complete |
+| MELB-03 | Phase 8 | Complete |
+| MELB-04 | Phase 8 | Complete |
+| FLOR-01 | Phase 9 | Complete |
+| FLOR-02 | Phase 9 | Complete |
+| FLOR-03 | Phase 9 | Complete |
+| FLOR-04 | Phase 9 | Complete |
+| GGUF-01 | Phase 10 | Complete |
+| GGUF-02 | Phase 10 | Complete |
+| GGUF-03 | Phase 10 | Complete |
+| GGUF-04 | Phase 10 | Complete |
+| IMPC-01 | Phase 11 | Complete |
+| IMPC-02 | Phase 11 | Complete |
+| IMPC-03 | Phase 11 | Complete |
+| IMPC-04 | Phase 11 | Complete |
 
 **Coverage:**
 - v1 requirements: 24 total (all complete)
-- v2.0 requirements: 18 total
+- v2.0 requirements: 18 total (all complete)
 - Mapped to phases: 18/18
 - Unmapped: 0
 
 ---
 *Requirements defined: 2026-03-18*
-*Last updated: 2026-03-25 after v2.0 roadmap creation*
+*Last updated: 2026-03-25 after v2.0 milestone completion*
