@@ -41,7 +41,21 @@ Template creators can go from "what should we build next?" to "here's a cloud-te
 
 ### Active
 
-(All core requirements validated — Phase 6: Testing & Distribution remaining)
+- [ ] ComfyUI-Florence2 template — vision AI captioning/detection/segmentation workflow
+- [ ] ComfyUI-GGUF template — quantized model loading for txt2img workflow
+- [ ] ComfyUI Impact Pack template — face detection + auto-detailing workflow
+- [ ] ComfyUI-MelBandRoFormer template — audio stem separation workflow
+- [ ] Each template passes validation, includes index.json metadata and Notion submission docs
+
+## Current Milestone: v2.0 Template Batch — Trending Node Coverage
+
+**Goal:** Deliver 4 production-ready ComfyUI templates for high-demand node packs with zero template coverage.
+
+**Target templates:**
+- ComfyUI-Florence2 — Vision AI: captioning, object detection, segmentation, OCR (1.25M downloads)
+- ComfyUI-GGUF — Quantized model loading for txt2img on consumer hardware (1.69M downloads, 3.4K stars)
+- ComfyUI Impact Pack — Face detection + auto-detailing pipeline (2.37M downloads, 3K stars)
+- ComfyUI-MelBandRoFormer — Audio stem separation (240K downloads)
 
 ### Out of Scope
 
@@ -80,5 +94,22 @@ Template creators can go from "what should we build next?" to "here's a cloud-te
 | Build on comfy-tip + MCP rather than from scratch | Proven node discovery and cloud interaction already exist | — Pending |
 | Scaffold + compose dual path for workflow creation | Novel use cases need from-scratch composition; variations are faster from templates | — Pending |
 
+## Evolution
+
+This document evolves at phase transitions and milestone boundaries.
+
+**After each phase transition** (via `/gsd:transition`):
+1. Requirements invalidated? → Move to Out of Scope with reason
+2. Requirements validated? → Move to Validated with phase reference
+3. New requirements emerged? → Add to Active
+4. Decisions to log? → Add to Key Decisions
+5. "What This Is" still accurate? → Update if drifted
+
+**After each milestone** (via `/gsd:complete-milestone`):
+1. Full review of all sections
+2. Core Value check — still the right priority?
+3. Audit Out of Scope — reasons still valid?
+4. Update Context with current state
+
 ---
-*Last updated: 2026-03-19 after Phase 5 completion*
+*Last updated: 2026-03-25 after milestone v2.0 initialization*
