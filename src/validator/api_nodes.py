@@ -2,7 +2,6 @@
 
 import json
 from pathlib import Path
-from typing import Any
 
 from src.validator.models import Finding, Severity
 
@@ -55,7 +54,6 @@ def detect_api_nodes(workflow: dict) -> list[Finding]:
 
         if matched_entry:
             provider = matched_entry["provider"]
-            auth_type = matched_entry["auth_type"]
             findings.append(
                 Finding(
                     rule_id="api_node_auth",

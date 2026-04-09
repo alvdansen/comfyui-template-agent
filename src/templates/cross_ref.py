@@ -1,7 +1,6 @@
 """Cross-reference nodes and packs against the template library."""
 
 import argparse
-import json
 
 from src.shared.cache import DiskCache
 from src.shared.config import CACHE_TTLS

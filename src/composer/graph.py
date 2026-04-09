@@ -137,7 +137,6 @@ class WorkflowGraph:
 
         if spec is not None:
             # Rebuild outputs from spec
-            old_outputs = node.outputs
             node.outputs = [
                 {"name": out.name, "type": out.type, "links": []}
                 for out in spec.outputs
