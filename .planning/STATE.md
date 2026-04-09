@@ -1,41 +1,43 @@
 ---
 gsd_state_version: 1.0
 milestone: v2.0
-milestone_name: Template Batch — Trending Node Coverage
-status: complete
-stopped_at: All phases complete
-last_updated: "2026-03-25T12:00:00.000Z"
+milestone_name: Template Batch -- Trending Node Coverage
+status: completed
+stopped_at: Milestone v2.0 archived
+last_updated: "2026-04-09"
+last_activity: 2026-04-09
 progress:
   total_phases: 5
   completed_phases: 5
   total_plans: 5
   completed_plans: 5
+  percent: 100
 ---
 
 # Project State
 
 ## Project Reference
 
-See: .planning/PROJECT.md (updated 2026-03-25)
+See: .planning/PROJECT.md (updated 2026-04-09)
 
 **Core value:** Template creators can go from "what should we build next?" to "here's a cloud-tested workflow with submission docs" in a single guided session
-**Current focus:** Milestone v2.0 complete -- all 4 templates delivered
+**Current focus:** Milestone v2.0 complete and archived — ready for next milestone
 
 ## Current Position
 
-Phase: 11 of 11 (Impact Pack Template) -- all v2.0 phases complete
+Phase: All complete (v1.0: phases 1-6, v2.0: phases 7-11)
 Plan: All complete
-Status: Milestone v2.0 complete
-Last activity: 2026-03-25 -- All 5 phases executed (7-11)
+Status: Between milestones — v2.0 shipped 2026-04-09
+Last activity: 2026-04-09
 
 Progress: [####################] 100% (v1.0 + v2.0 complete)
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 14 (v1.0)
-- Average duration: 4.4min
-- Total execution time: ~1 hour
+
+- v1.0: 14 plans, 4.4min avg, ~1 hour total
+- v2.0: 5 plans (phases 7-11), executed outside GSD plan/execute cycle
 
 **By Phase (v1.0):**
 
@@ -48,36 +50,22 @@ Progress: [####################] 100% (v1.0 + v2.0 complete)
 | 05 | 2 | 6min | 3min |
 | 06 | 3 | 5min | 1.7min |
 
-**Recent Trend:**
-- v1.0 average: 4.4 min/plan
-- Trend: Stable
-
 ## Accumulated Context
 
 ### Decisions
 
-Decisions are logged in PROJECT.md Key Decisions table.
-Recent decisions affecting current work:
-
-- [v2.0 Roadmap]: Phase 7 (tooling fixes) is a hard prerequisite -- without it, MelBandRoFormer produces false validation errors and GGUF metadata omits model files
-- [v2.0 Roadmap]: Phases 8-11 (templates) are independent -- can execute in any order or parallel
-- [v2.0 Roadmap]: Complexity order MelBand -> Florence2 -> GGUF -> Impact Pack recommended but not mandatory
-- [v2.0 Research]: No new Python code needed -- existing WorkflowGraph, validator, and doc generators handle all 4 templates
-- [v2.0 Research]: GGUF .gguf files blocked by template safety policy -- manual model docs required
-- [v2.0 Research]: Impact Pack requires declaring both comfyui-impact-pack AND comfyui-impact-subpack
+All key decisions validated through v2.0 — see PROJECT.md Key Decisions table.
 
 ### Pending Todos
 
-None yet.
+None.
 
 ### Blockers/Concerns
 
-- GGUF cloud model availability unknown -- check at Phase 10 planning whether flux1-schnell-Q4_K_S.gguf is pre-cached on Comfy Cloud
-- Impact Pack .pth model embedding support unknown -- test at Phase 11 whether sam_vit_b_01ec64.pth triggers safety block like .gguf
-- Florence2 _detect_models heuristic may miss DownloadAndLoadFlorence2Model -- verify at Phase 9 composition
+None — all v2.0 concerns resolved during execution.
 
 ## Session Continuity
 
-Last session: 2026-03-25
-Stopped at: Roadmap created for v2.0 milestone
+Last session: 2026-04-09
+Stopped at: Milestone v2.0 archived
 Resume file: None

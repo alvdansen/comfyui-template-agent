@@ -39,23 +39,21 @@ Template creators can go from "what should we build next?" to "here's a cloud-te
 - ✓ Guided phase-based workflow: discover → ideate → compose → validate → document — Phase 5
 - ✓ Context-aware suggestions between phases — Phase 5
 
-### Active
+### Validated (v2.0)
 
-- [ ] ComfyUI-Florence2 template — vision AI captioning/detection/segmentation workflow
-- [ ] ComfyUI-GGUF template — quantized model loading for txt2img workflow
-- [ ] ComfyUI Impact Pack template — face detection + auto-detailing workflow
-- [ ] ComfyUI-MelBandRoFormer template — audio stem separation workflow
-- [ ] Each template passes validation, includes index.json metadata and Notion submission docs
+- ✓ ComfyUI-Florence2 template — vision AI captioning workflow with auto-download model — Phase 9
+- ✓ ComfyUI-GGUF template — quantized FLUX.1-schnell txt2img for 8 GB VRAM — Phase 10
+- ✓ ComfyUI Impact Pack template — face detection + auto-detailing with dual-pack dependency — Phase 11
+- ✓ ComfyUI-MelBandRoFormer template — audio stem separation workflow — Phase 8
+- ✓ Each template passes validation, includes index.json metadata and Notion submission docs — Phases 8-11
+- ✓ Tooling fixes: core_nodes.json audio gaps and .gguf model detection — Phase 7
 
-## Current Milestone: v2.0 Template Batch — Trending Node Coverage
+## Current State
 
-**Goal:** Deliver 4 production-ready ComfyUI templates for high-demand node packs with zero template coverage.
+**Shipped:** v2.0 (2026-04-09)
+**Previous:** v1.0 (2026-03-20)
 
-**Target templates:**
-- ComfyUI-Florence2 — Vision AI: captioning, object detection, segmentation, OCR (1.25M downloads)
-- ComfyUI-GGUF — Quantized model loading for txt2img on consumer hardware (1.69M downloads, 3.4K stars)
-- ComfyUI Impact Pack — Face detection + auto-detailing pipeline (2.37M downloads, 3K stars)
-- ComfyUI-MelBandRoFormer — Audio stem separation (240K downloads)
+All 6 skills operational. 4 production templates delivered covering high-demand node packs (Florence2, GGUF, Impact Pack, MelBandRoFormer). 42 requirements fulfilled across both milestones.
 
 ### Out of Scope
 
@@ -67,14 +65,12 @@ Template creators can go from "what should we build next?" to "here's a cloud-te
 
 ## Context
 
-- **Existing tools to build on:**
-  - `comfy-tip` (Projects/comfy-tip/) — node discovery from api.comfy.org with trending heuristic, 5 discovery modes
-  - `comfyui-mcp` (comfyui-cloud MCP server) — workflow submission, model search, node search via cloud API
-  - Local MCP improvements (Projects/comfyui/) — API node auth detection, silent failure handling
-- **Template source of truth:** GitHub repo `Comfy-Org/workflow_templates` — 400 templates across 8 categories, index.json defines metadata schema
-- **Template guidelines:** Notion doc covering node usage rules (prefer core nodes, no set/get), subgraph conventions, color/note standards, submission format
-- **Team format:** Currently template creators work from existing templates as reference. No formalized "source of truth" format beyond the repo structure itself — this tool can help define one
-- **Registry API:** api.comfy.org provides node metadata (8,400+ nodes), used by comfy-tip for discovery
+- **Codebase:** 6 Claude Code skills (`comfy-discover`, `comfy-template-audit`, `comfy-validate`, `comfy-compose`, `comfy-document`, `comfy-flow`) backed by Python modules in `src/`
+- **Templates delivered:** 4 production templates in `templates/` (Florence2, GGUF, Impact Pack, MelBandRoFormer) — each with workflow JSON, index.json, Notion markdown, and build scripts
+- **Infrastructure:** Shared HTTP client (httpx), disk caching, format detection in `src/shared/`; validator engine with 12 rules in `src/validator/`; type-safe graph builder in `src/composer/`
+- **External dependencies:** Registry API (api.comfy.org, public), GitHub API (workflow_templates repo), ComfyUI Cloud MCP
+- **Template source of truth:** GitHub repo `Comfy-Org/workflow_templates` — 400+ templates, index.json schema
+- **Registry API:** api.comfy.org provides node metadata (8,400+ nodes)
 
 ## Constraints
 
@@ -88,11 +84,11 @@ Template creators can go from "what should we build next?" to "here's a cloud-te
 
 | Decision | Rationale | Outcome |
 |----------|-----------|---------|
-| GSD-inspired phase workflow rather than loose tools | Template creation has a natural flow (discover → ideate → compose → validate → document) that benefits from guided phases | — Pending |
-| Python core with Claude Code skill interface | Matches comfy-tip and MCP server patterns, team already uses Claude Code | — Pending |
-| Notion markdown output, not API integration | Per-user page hierarchy makes API complex; markdown + human review is fine for v1 | — Pending |
-| Build on comfy-tip + MCP rather than from scratch | Proven node discovery and cloud interaction already exist | — Pending |
-| Scaffold + compose dual path for workflow creation | Novel use cases need from-scratch composition; variations are faster from templates | — Pending |
+| GSD-inspired phase workflow rather than loose tools | Template creation has a natural flow (discover → ideate → compose → validate → document) that benefits from guided phases | ✓ Validated — comfy-flow skill guides full workflow, used across all 4 v2.0 templates |
+| Python core with Claude Code skill interface | Matches comfy-tip and MCP server patterns, team already uses Claude Code | ✓ Validated — 6 skills delivered, Python modules handle all composition/validation/docs |
+| Notion markdown output, not API integration | Per-user page hierarchy makes API complex; markdown + human review is fine for v1 | ✓ Validated — markdown output used for all 4 template submissions |
+| Build on comfy-tip + MCP rather than from scratch | Proven node discovery and cloud interaction already exist | ✓ Validated — no new Python code needed for v2.0 templates, existing tools handled all 4 |
+| Scaffold + compose dual path for workflow creation | Novel use cases need from-scratch composition; variations are faster from templates | ✓ Validated — v2.0 templates used both paths depending on complexity |
 
 ## Evolution
 
@@ -112,4 +108,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-03-25 after milestone v2.0 initialization*
+*Last updated: 2026-04-09 after v2.0 milestone completion*
