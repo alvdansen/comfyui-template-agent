@@ -2,12 +2,14 @@
 
 ![Python](https://img.shields.io/badge/Python-3.12+-3776AB?logo=python&logoColor=white)
 ![License](https://img.shields.io/badge/License-MIT-2E7D32)
-![Tests](https://img.shields.io/badge/Tests-passing-brightgreen)
+![CI](https://github.com/alvdansen/comfyui-template-agent/actions/workflows/ci.yml/badge.svg)
 ![Claude Code](https://img.shields.io/badge/Claude_Code-Agent_Toolkit-7C3AED)
 
 Claude Code agent toolkit for ComfyUI template creation -- from node discovery to submission-ready docs in a single session.
 
 > **4** production templates | **6** agent skills | **5.5M+** combined node pack downloads
+
+![Demo](docs/demo.gif)
 
 ## Quick Start
 
@@ -54,14 +56,7 @@ Claude: [validates, generates index.json + Notion markdown + thumbnail spec]
 
 ## Architecture
 
-```
-  /comfy-discover ─────┐
-  /comfy-template-audit │
-  /comfy-validate ──────┤──> src/ modules ──> Registry API (api.comfy.org)
-  /comfy-compose ───────┤                ──> GitHub API (workflow_templates)
-  /comfy-document ──────┤                ──> ComfyUI Cloud MCP
-  /comfy-flow ──────────┘
-```
+![Architecture](docs/architecture.svg)
 
 - `src/shared/` -- HTTP client (httpx), caching (DiskCache), format detection
 - `src/registry/` -- Node discovery (highlights, search, spec)

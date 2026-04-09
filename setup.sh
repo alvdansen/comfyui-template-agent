@@ -6,7 +6,7 @@ echo "=============================="
 
 # Check Python 3.12+
 python_cmd=""
-for cmd in python3 python; do
+for cmd in python3.12 python3 python; do
     if command -v "$cmd" &>/dev/null; then
         python_cmd="$cmd"
         break
@@ -18,7 +18,7 @@ if [[ -z "$python_cmd" ]]; then
     exit 1
 fi
 
-python_version=$($python_cmd --version 2>/dev/null | grep -oP '\d+\.\d+' | head -1)
+python_version=$($python_cmd --version 2>/dev/null | sed -E 's/Python ([0-9]+\.[0-9]+).*/\1/' | head -1)
 major=$(echo "$python_version" | cut -d. -f1)
 minor=$(echo "$python_version" | cut -d. -f2)
 if (( major < 3 || (major == 3 && minor < 12) )); then
@@ -27,10 +27,20 @@ if (( major < 3 || (major == 3 && minor < 12) )); then
 fi
 echo "OK Python $python_version"
 
+# Create/activate virtual environment
+VENV_DIR=".venv"
+if [[ ! -d "$VENV_DIR" ]]; then
+    echo ""
+    echo "Creating virtual environment..."
+    $python_cmd -m venv "$VENV_DIR"
+fi
+source "$VENV_DIR/bin/activate"
+python_cmd="python"
+
 # Install dependencies (editable mode makes python -m src.* work from anywhere)
 echo ""
 echo "Installing dependencies..."
-pip install -e ".[dev]"
+python -m pip install -e ".[dev]"
 
 # Create skill symlinks in ~/.claude/skills/
 SKILLS_DIR="$HOME/.claude/skills"
