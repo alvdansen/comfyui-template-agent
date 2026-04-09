@@ -11,7 +11,7 @@ Set TypingSpeed 40ms
 Hide
 Type "export PS1='$ '"
 Enter
-Type "cd /Users/macapple/comfyui-template-agent && source .venv/bin/activate && export PS1='$ '"
+Type "source .venv/bin/activate && export PS1='$ '"
 Enter
 Sleep 1s
 Type "clear"
