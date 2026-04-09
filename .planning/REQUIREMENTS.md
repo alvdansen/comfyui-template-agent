@@ -23,8 +23,8 @@ Requirements for the Publish & Present milestone. Each maps to roadmap phases.
 - [x] **CONTENT-05**: CLAUDE.md trimmed of GSD enforcement, developer profile placeholder, and template node documentation
 - [ ] **CONTENT-06**: CONTRIBUTING.md with dev setup, code style (pydantic, httpx, ruff), PR process, skill authoring guide
 - [ ] **CONTENT-07**: AGENTS.md following 2026 Linux Foundation standard
-- [ ] **CONTENT-08**: All 6 SKILL.md files standardized with trigger, capabilities, example sessions, gotchas
-- [x] **CONTENT-09**: Each of 4 templates has a README explaining what was built, which skills were used, and outputs
+- [x] **CONTENT-08**: All 6 SKILL.md files standardized with trigger, capabilities, example sessions, gotchas
+- [ ] **CONTENT-09**: Each of 4 templates has a README explaining what was built, which skills were used, and outputs
 
 ### Presentation Materials
 
@@ -94,8 +94,8 @@ Which phases cover which requirements. Updated during roadmap creation.
 | CONTENT-05 | Phase 13 | Complete |
 | CONTENT-06 | Phase 13 | Pending |
 | CONTENT-07 | Phase 13 | Pending |
-| CONTENT-08 | Phase 13 | Pending |
-| CONTENT-09 | Phase 13 | Complete |
+| CONTENT-08 | Phase 13 | Complete |
+| CONTENT-09 | Phase 13 | Pending |
 | PRESENT-01 | Phase 14 | Pending |
 | PRESENT-02 | Phase 14 | Pending |
 | PRESENT-03 | Phase 16 | Pending |
