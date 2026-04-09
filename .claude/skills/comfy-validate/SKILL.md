@@ -7,6 +7,14 @@ description: "When the user has a workflow JSON and wants to check guideline com
 
 Validate ComfyUI workflow JSON against template creation guidelines.
 
+## Capabilities
+
+- Check workflow against all 12 submission guideline rules
+- Run in strict (submission) or lenient (draft) mode
+- Skip specific rules with `--ignore` flag
+- Detect API node auth requirements separately from guideline rules
+- Validate cloud deployment compatibility
+
 ## Commands
 
 ```bash
@@ -37,6 +45,15 @@ python -m src.validator.validate --file workflow.json --ignore core_node_prefere
 | group_color_default | Default group colors | recommended |
 | simplicity_readability | Workflow clarity | recommended |
 | api_node_auth | API node auth requirements | warning |
+
+## Example Session
+
+**User:** Check if my workflow is ready for submission
+**Agent:** Runs `python -m src.validator.validate --file workflow.json --mode strict`. Found 2 issues: (1) Note node #7 has light background color (required: dark/black), (2) Missing thumbnail specs. 10 of 12 rules passed.
+**User:** Can I skip the thumbnail check for now?
+**Agent:** Runs `python -m src.validator.validate --file workflow.json --mode strict --ignore thumbnail_specs`. 11 of 11 remaining rules: 1 issue on note color. Fix the note node background to a dark color (#000000) and re-validate.
+**User:** Fixed it, validate again
+**Agent:** Runs validation. All 11 rules pass. Thumbnail specs still skipped -- remember to add before final submission.
 
 ## Key Constraints
 

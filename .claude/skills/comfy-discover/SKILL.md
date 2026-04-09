@@ -7,7 +7,13 @@ description: "When the user wants to explore ComfyUI nodes -- trending, new, pop
 
 Surface interesting nodes from the ComfyUI registry for template creation inspiration.
 
-**Run these commands via Bash tool.** The package must be installed first (`pip install -e .` from the repo root).
+## Capabilities
+
+- Browse trending, new, rising, popular, and random nodes
+- Filter by media category (video, image, audio, 3d)
+- Search nodes by name or capability keyword
+- Search by input/output type (e.g., IMAGE -> MASK)
+- Inspect node pack details and I/O specifications
 
 ## Commands
 
@@ -31,6 +37,15 @@ python -m src.registry.spec <node-pack-id> --detail
 ```
 
 Add `--json` to any command for raw JSON output.
+
+## Example Session
+
+**User:** Show me trending audio nodes
+**Agent:** Runs `python -m src.registry.highlights --mode trending --category audio --limit 10`. Found 8 audio packs -- top 3: ComfyUI-MelBandRoFormer (240K downloads), ComfyUI-AudioReactive (95K), ComfyUI-Whisper (78K).
+**User:** Tell me more about MelBandRoFormer
+**Agent:** Runs `python -m src.registry.spec comfyui-melbandroformer --detail`. Pack by kijai -- 2 nodes: MelBandRoFormerModelLoader and MelBandRoFormerSampler. Separates audio into vocals and instruments using MelBandRoFormer model.
+**User:** Any templates using it yet?
+**Agent:** Cross-references with template library. No existing template -- this is a gap worth filling.
 
 ## Key Constraints
 

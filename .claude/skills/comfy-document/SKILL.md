@@ -24,6 +24,14 @@ notion-create-pages({
 Always ask the user before creating the Notion page. Never create public or shared pages without explicit permission.
 </important>
 
+## Capabilities
+
+- Generate index.json template registry metadata from workflow JSON
+- Generate Notion-ready submission markdown
+- Auto-extract models, custom nodes, I/O spec, and media type
+- Create private Notion pages via MCP (with user permission)
+- Provide thumbnail format requirements reminder
+
 ## Commands
 
 ```bash
@@ -54,6 +62,15 @@ python -m src.document.generate --file workflow.json --name my-template \
 | `--size` | No | Size estimate in GB |
 | `--output` | No | `index`, `notion`, or `both` (default) |
 | `--json` | No | Raw JSON output |
+
+## Example Session
+
+**User:** Generate submission docs for my audio template
+**Agent:** Runs `python -m src.document.generate --file workflow.json --name melbandroformer-audio-separation --title "MelBandRoFormer Audio Separation" --tags "audio,stem separation,vocals"`. Generated index.json entry (1 custom node, 1 model, media type: audio) and Notion markdown.
+**User:** Create the Notion page
+**Agent:** Creates private Notion page via MCP with the generated submission markdown. Page title: "Template: MelBandRoFormer Audio Separation". Link: [notion page URL].
+**User:** What about the thumbnail?
+**Agent:** Thumbnail reminder: 1:1 ratio, use workflow output (audio waveform visualization), avoid key info in top-left corner (API badge placement). Supported formats at the workflow_templates repo README.
 
 ## Key Constraints
 

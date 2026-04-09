@@ -7,6 +7,14 @@ description: "When the user wants to audit existing templates, check if a node h
 
 Full access to the ComfyUI template library: search, detail view, cross-reference, gap analysis, and coverage reports.
 
+## Capabilities
+
+- Search the template library by keyword, type, or model
+- View template details including extracted node types
+- Cross-reference nodes or packs against existing templates
+- Run gap analysis to find popular packs without templates
+- Generate coverage reports across the template library
+
 ## Commands
 
 ```bash
@@ -32,9 +40,14 @@ python -m src.templates.coverage coverage
 
 Use `--refresh` on any command to bypass cache.
 
-## Live Example
+## Example Session
 
-!python -m src.templates.coverage gap --limit 3
+**User:** What popular node packs don't have templates yet?
+**Agent:** Runs `python -m src.templates.coverage gap --limit 5`. Top gaps: ComfyUI-KJNodes (2.1M downloads, no template), ComfyUI-VideoHelperSuite (1.2M, no template), ComfyUI-WanVideoWrapper (890K, no template).
+**User:** Which templates use KSampler?
+**Agent:** Runs `python -m src.templates.cross_ref --query "KSampler" --level node`. Found 23 templates using KSampler -- most common in txt2img and img2img workflows.
+**User:** Show me the FLUX schnell template details
+**Agent:** Runs `python -m src.templates.fetch --detail "flux_schnell_simple_generation"`. Uses 5 nodes: KSampler, CLIPTextEncode, EmptyLatentImage, VAEDecode, SaveImage. Model: FLUX.1-schnell.
 
 ## Key Constraints
 
