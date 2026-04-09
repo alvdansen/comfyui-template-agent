@@ -1,557 +1,417 @@
-# Architecture: Template Workflow Graphs
+# Architecture: v3.0 Publish & Present
 
-**Domain:** ComfyUI workflow template composition for 4 node packs
-**Researched:** 2026-03-25
-**Confidence:** HIGH (existing codebase fully analyzed, node pack APIs verified via GitHub and documentation)
+**Domain:** Public release of a Python + Claude Code skills toolkit with presentation materials
+**Researched:** 2026-04-08
+**Confidence:** HIGH (existing codebase fully analyzed, target org conventions verified, CI patterns established)
 
-## How Templates Integrate With Existing Architecture
+## Current State Assessment
 
-The existing toolkit provides a complete pipeline for template creation. Each of the 4 templates follows the same flow through the codebase:
+The repo at `aramintak/comfyui-template-agent` is a working internal toolkit with 3,856 lines of source code across 6 modules, 3,887 lines of tests, 4 delivered templates, and 6 Claude Code skills. It works. The architecture is sound. The restructuring for v3.0 is about **packaging and presentation**, not rewriting.
 
-```
-1. Node specs fetched via MCP search_nodes
-2. Specs cached via NodeSpecCache.from_mcp_response()
-3. WorkflowGraph built via add_node() + connect() + set_widget()
-4. auto_layout() positions nodes left-to-right
-5. save_workflow() serializes + runs lenient validation
-6. run_validation() with strict mode for final check
-7. generate_index_entry() produces metadata
-8. generate_notion_markdown() produces submission docs
-```
-
-No new code is needed. The existing `src/composer/`, `src/validator/`, and `src/document/` modules handle all 4 templates. The work is composing the workflow JSON using the existing tools.
-
-### Integration Points
-
-| Codebase Module | How Templates Use It |
-|-----------------|---------------------|
-| `WorkflowGraph.add_node()` | Add each node with type, title, and widget values |
-| `WorkflowGraph.connect()` | Wire outputs to inputs with type-checked connections |
-| `WorkflowGraph.set_widget()` | Configure sampler, model paths, and parameters |
-| `auto_layout()` | Position nodes in readable left-to-right DAG |
-| `save_workflow()` | Serialize to workflow JSON + lenient validation |
-| `run_validation(mode="strict")` | Full 12-rule guideline check before submission |
-| `generate_index_entry()` | Auto-extract IO, models, custom nodes for index.json |
-| `generate_notion_markdown()` | Submission-ready markdown for Notion |
-
-### Validation Expectations Per Template
-
-All 4 templates will intentionally trigger `core_node_preference` warnings because they exist specifically to showcase custom nodes. These warnings are expected and correct. The validator flags them for awareness, not as blockers. What matters:
-
-- Zero `no_set_get_nodes` errors (never use Set/Get)
-- Zero `subgraph_rules` errors (keep Preview/Save outside subgraphs)
-- Note nodes use black background (`note_color_black`)
-- No API nodes in these 4 templates (none use paid APIs), so `api_node_auth` passes clean
-
-## Template File Organization
-
-Templates live in the project root as standalone workflow JSON files, alongside their generated documentation:
+### What Exists Today
 
 ```
 comfyui-template-agent/
-  templates/                          # NEW directory for v2.0
+  .claude/skills/comfy-*/          # 6 skill definitions (SKILL.md + gotchas.md)
+  .planning/                       # GSD planning artifacts (internal)
+  src/
+    shared/                        # HTTP client, caching, config, format detection (6 files)
+    registry/                      # Node discovery: highlights, search, spec (4 files)
+    templates/                     # Template library: fetch, search, cross_ref, coverage (5 files)
+    validator/                     # Validation engine: rules, engine, api_nodes (5 files)
+    composer/                      # Workflow composition: graph, scaffold, layout (6 files)
+    document/                      # Doc generation: metadata, notion, orchestrator (5 files)
+  templates/                       # 4 delivered templates (workflow.json + index.json + submission.md + build.py)
+  tests/                           # 11 test files + fixtures + conftest
+  data/                            # Static data (core_nodes.json, guidelines.json, api_nodes.json, cache/)
+  scripts/                         # Maintenance scripts (extract/update core nodes)
+  setup.sh / setup.ps1             # Cross-platform setup
+  pyproject.toml                   # Package definition
+  README.md                        # Current docs
+  CLAUDE.md                        # Agent instructions (22.5 KB)
+  COMPAT-FIX.md                    # macOS compatibility guide
+  comfyui_template_agent.egg-info/ # Build artifact (should be gitignored)
+```
+
+### What Needs to Change for Public Release
+
+| Area | Current State | Required State | Effort |
+|------|--------------|----------------|--------|
+| Git remote | `aramintak/comfyui-template-agent` | `alvdansen/comfyui-template-agent` | Low |
+| LICENSE | Missing | MIT (matches alvdansen org convention) | Low |
+| `.gitignore` | Missing `.venv/`, has egg-info tracked | Add `.venv/`, `*.egg-info/` | Low |
+| `pyproject.toml` | version 0.1.0, no license field | version 1.0.0, add license per PEP 639 | Low |
+| README | Internal-facing, references comfy-tip | Public-facing, standalone narrative | Medium |
+| CLAUDE.md | Bloated (22.5 KB), internal references | Trimmed for public consumption | Medium |
+| Planning artifacts | `.planning/` contains all GSD history | Keep in repo (valuable context), but add to `.gitignore` for clean clone | Low |
+| comfy-tip references | 40+ references in planning docs, 2 in public-facing files | Remove from README, CLAUDE.md; planning docs are historical | Low |
+| `COMPAT-FIX.md` | Internal dev guide | Move to `docs/` or remove (fixes already applied) | Low |
+| `egg-info/` | Tracked in git | Add to `.gitignore`, remove from tracking | Low |
+| CI/CD | None | GitHub Actions: test on push/PR | Medium |
+| `setup.ps1` | Uses bare `pip` (not venv-aware) | Add venv creation to match `setup.sh` | Low |
+
+## Recommended Architecture for Public Release
+
+### Repository Structure (Target State)
+
+```
+comfyui-template-agent/
+  .claude/
+    skills/
+      comfy-compose/               # SKILL.md + gotchas.md
+      comfy-discover/              # SKILL.md + gotchas.md
+      comfy-document/              # SKILL.md + gotchas.md
+      comfy-flow/                  # SKILL.md + gotchas.md
+      comfy-template-audit/        # SKILL.md + gotchas.md
+      comfy-validate/              # SKILL.md + gotchas.md
+  .github/
+    workflows/
+      test.yml                     # NEW: pytest on push/PR
+    ISSUE_TEMPLATE/
+      bug_report.md                # NEW: standard bug template
+      feature_request.md           # NEW: standard feature template
+  src/                             # UNCHANGED — Python modules
+    shared/
+    registry/
+    templates/
+    validator/
+    composer/
+    document/
+  templates/                       # UNCHANGED — 4 delivered templates
     florence2-vision-ai/
-      workflow.json                   # Workflow format JSON (nodes[] + links[])
-      index.json                      # Generated by generate_index_entry()
-      submission.md                   # Generated by generate_notion_markdown()
     gguf-quantized-txt2img/
-      workflow.json
-      index.json
-      submission.md
     impact-pack-face-detailer/
-      workflow.json
-      index.json
-      submission.md
     melbandroformer-audio-separation/
-      workflow.json
-      index.json
-      submission.md
+  tests/                           # UNCHANGED — test suite
+    fixtures/
+    conftest.py
+    test_*.py
+  data/                            # UNCHANGED — static data
+    core_nodes.json
+    guidelines.json
+    api_nodes.json
+  scripts/                         # UNCHANGED — maintenance scripts
+  docs/                            # NEW: supplementary documentation
+    compatibility.md               # Moved from COMPAT-FIX.md
+  LICENSE                          # NEW: MIT license
+  README.md                        # REWRITTEN: public-facing
+  CLAUDE.md                        # TRIMMED: remove internal references
+  pyproject.toml                   # UPDATED: version, license, URLs
+  setup.sh                         # UPDATED: minor cleanup
+  setup.ps1                        # UPDATED: add venv support
+  .gitignore                       # UPDATED: add missing entries
 ```
 
-**Rationale for `templates/` directory:**
-- Separates composed outputs from source code (`src/`)
-- Each template is a self-contained deliverable (workflow + metadata + submission doc)
-- Matches the naming convention used in the official `Comfy-Org/workflow_templates` repo
-- Template names use kebab-case with no spaces or special characters
+### What Stays, What Goes, What Changes
 
-## Template 1: ComfyUI-Florence2 -- Vision AI Captioning/Detection
+**Keep as-is (no changes):**
+- `src/` — All 6 Python modules. Code is clean, tested, production-ready.
+- `templates/` — All 4 templates with their build scripts, workflow JSON, index.json, and submission docs.
+- `tests/` — Full test suite with fixtures.
+- `data/` — Static data files (core_nodes.json, guidelines.json, api_nodes.json).
+- `scripts/` — Maintenance scripts for core node extraction.
+- `.claude/skills/` — All 6 skill definitions.
 
-### Purpose
-Demonstrate Florence2's multi-task vision capabilities: image captioning, object detection, and segmentation in a single workflow.
+**Remove from git tracking (add to .gitignore):**
+- `comfyui_template_agent.egg-info/` — Build artifact, should never be tracked.
+- `.venv/` — Already gitignored but worth verifying.
+- `data/cache/` — Already gitignored, confirmed.
 
-### Node Graph Architecture
+**Modify:**
+- `pyproject.toml` — Bump version to 1.0.0, add license = "MIT", add project URLs (homepage, repository, issues).
+- `README.md` — Rewrite for public audience. Remove comfy-tip references. Add badge for CI. Structure: hero description, quick start, skills table, architecture diagram (ASCII), CLI reference, contributing, license.
+- `CLAUDE.md` — Remove comfy-tip references from constraints section. Remove Windows file paths (C:/Users/minta/...). Trim to essential agent instructions.
+- `.gitignore` — Add `*.egg-info/` entry (currently there but `comfyui_template_agent.egg-info/` was committed before the rule existed). Verify `.venv/` is present.
+- `setup.ps1` — Add venv creation/activation to match `setup.sh` quality.
 
+**Add (new files):**
+- `LICENSE` — MIT license text (matches alvdansen org convention per `flimmer-trainer`).
+- `.github/workflows/test.yml` — GitHub Actions CI.
+- `docs/compatibility.md` — Relocated from `COMPAT-FIX.md`.
+
+**Decision: .planning/ directory**
+Keep `.planning/` in the repository. It contains valuable architectural context and decision history. Do NOT gitignore it. Public consumers benefit from understanding the design decisions. The GSD artifacts serve as project documentation, not private notes.
+
+### Component Boundaries (Unchanged)
+
+The existing architecture is well-bounded and does not need restructuring:
+
+| Component | Responsibility | Communicates With |
+|-----------|---------------|-------------------|
+| `src/shared/` | HTTP client, caching, config, format detection | All other modules (dependency) |
+| `src/registry/` | Node discovery from api.comfy.org | `shared/` for HTTP and caching |
+| `src/templates/` | Template library from GitHub workflow_templates | `shared/` for HTTP and caching |
+| `src/validator/` | Workflow validation against 12 rules | `data/` for guidelines, api_nodes, core_nodes |
+| `src/composer/` | Workflow graph construction and layout | `validator/` for inline validation |
+| `src/document/` | Metadata and docs generation | `validator/` for validation state |
+| `.claude/skills/` | Claude Code skill interface | `src/` modules via CLI (`python -m`) |
+
+Data flow remains the same:
 ```
-LoadImage ──> Florence2Run ──> SaveImage
-                  ^                |
-                  |            (IMAGE output)
-DownloadAndLoadFlorence2Model     |
-                              out_mask_tensor ──> PreviewImage (mask)
-```
-
-### Nodes (6 nodes, 5 links)
-
-| Node | Type | Custom? | Purpose |
-|------|------|---------|---------|
-| 1 | LoadImage | Core | Input image to analyze |
-| 2 | DownloadAndLoadFlorence2Model | Custom | Load Florence-2-large model |
-| 3 | Florence2Run | Custom | Execute vision task on image |
-| 4 | Note | Core | Explain task options and usage |
-| 5 | SaveImage | Core | Save processed output image |
-| 6 | PreviewImage | Core | Preview segmentation mask |
-
-### Connections
-
-| Source | Output Slot | Target | Input Slot | Type |
-|--------|-------------|--------|------------|------|
-| LoadImage (1) | IMAGE | Florence2Run (3) | image | IMAGE |
-| DownloadAndLoadFlorence2Model (2) | florence2_model | Florence2Run (3) | florence2_model | FL2MODEL |
-| Florence2Run (3) | out_tensor | SaveImage (5) | images | IMAGE |
-| Florence2Run (3) | out_mask_tensor | PreviewImage (6) | images | IMAGE |
-
-### Key Widget Values
-
-| Node | Widget | Value | Notes |
-|------|--------|-------|-------|
-| DownloadAndLoadFlorence2Model (2) | model_name | "microsoft/Florence-2-large" | Large variant for best quality |
-| Florence2Run (3) | task | "detailed_caption" | Default task; user can switch to "object_detection", "segmentation", "ocr" |
-| Florence2Run (3) | text_input | "" | Empty for captioning; fill for grounding/VQA |
-| Florence2Run (3) | num_beams | 3 | Default beam search width |
-| Florence2Run (3) | max_new_tokens | 1024 | Sufficient for detailed captions |
-| Florence2Run (3) | keep_model_loaded | true | Avoid reloading between runs |
-| Note (4) | text | Task documentation | Explain available tasks: caption, detection, segmentation, OCR |
-
-### Custom Nodes Required
-- `DownloadAndLoadFlorence2Model` (ComfyUI-Florence2 by kijai)
-- `Florence2Run` (ComfyUI-Florence2 by kijai)
-
-### IO Spec
-- **Input:** 1 image (LoadImage)
-- **Output:** 1 image (SaveImage) + 1 mask preview (PreviewImage)
-- **Media type:** image
-
-### Template Metadata
-- **Name:** `florence2-vision-ai`
-- **Tags:** ["Vision AI", "Captioning", "Object Detection", "Segmentation", "OCR"]
-- **Models:** ["microsoft/Florence-2-large"]
-- **VRAM:** ~4 GB (Florence-2-large)
-
----
-
-## Template 2: ComfyUI-GGUF -- Quantized Model txt2img
-
-### Purpose
-Demonstrate loading GGUF-quantized diffusion models for text-to-image generation on consumer hardware with reduced VRAM requirements. Based on the Flux architecture which is the primary use case for GGUF in ComfyUI.
-
-### Node Graph Architecture
-
-```
-UnetLoaderGGUF ──────────────────> KSampler ──> VAEDecode ──> SaveImage
-                                      ^             ^
-DualCLIPLoaderGGUF ──> CLIPTextEncode │             │
-                   └──> CLIPTextEncode│             │
-                                      │             │
-EmptySD3LatentImage ──────────────────┘             │
-                                                    │
-VAELoader ──────────────────────────────────────────┘
+User (Claude Code) --> Skill (SKILL.md) --> CLI (python -m src.module.script) --> Python Module --> External API
+                                                                                                    |
+                                                                                           api.comfy.org (registry)
+                                                                                           github.com (templates)
+                                                                                           ComfyUI MCP (compose/flow)
 ```
 
-### Nodes (8 nodes, 8 links)
+## Presentation Assets Architecture
 
-| Node | Type | Custom? | Purpose |
-|------|------|---------|---------|
-| 1 | UnetLoaderGGUF | Custom | Load GGUF-quantized diffusion model |
-| 2 | DualCLIPLoaderGGUF | Custom | Load two CLIP text encoders (GGUF format) |
-| 3 | CLIPTextEncode | Core | Positive prompt conditioning |
-| 4 | CLIPTextEncode | Core | Negative prompt conditioning |
-| 5 | EmptySD3LatentImage | Core | Create empty latent (Flux uses SD3 latent) |
-| 6 | KSampler | Core | Sampling/denoising |
-| 7 | VAEDecode | Core | Decode latent to image |
-| 8 | SaveImage | Core | Save output |
-| 9 | Note | Core | Explain GGUF benefits and model compatibility |
+### Decision: Separate Directory, Same Repo
 
-### Connections
+Presentation assets live in a `presentation/` directory at the repo root. This keeps the deliverable self-contained (one repo = everything about this project) while maintaining clear separation from the toolkit code.
 
-| Source | Output Slot | Target | Input Slot | Type |
-|--------|-------------|--------|------------|------|
-| UnetLoaderGGUF (1) | MODEL | KSampler (6) | model | MODEL |
-| DualCLIPLoaderGGUF (2) | CLIP | CLIPTextEncode (3) | clip | CLIP |
-| DualCLIPLoaderGGUF (2) | CLIP | CLIPTextEncode (4) | clip | CLIP |
-| CLIPTextEncode (3) | CONDITIONING | KSampler (6) | positive | CONDITIONING |
-| CLIPTextEncode (4) | CONDITIONING | KSampler (6) | negative | CONDITIONING |
-| EmptySD3LatentImage (5) | LATENT | KSampler (6) | latent_image | LATENT |
-| KSampler (6) | LATENT | VAEDecode (7) | samples | LATENT |
-| VAELoader (10) | VAE | VAEDecode (7) | vae | VAE |
+**Why same repo (not separate):**
+- The presentation IS about this codebase. Co-locating makes the repo a complete package.
+- Comfy devs cloning the repo get the full story: code + docs + presentation.
+- Avoids cross-repo dependency management for a one-time deliverable.
+- Single URL to share with the Comfy team.
 
-### Key Widget Values
+**Why not in `docs/`:**
+- `docs/` is for user-facing documentation (install guides, compatibility).
+- Presentation assets are a specific deliverable with their own toolchain (Manim, PowerPoint, Excalidraw).
 
-| Node | Widget | Value | Notes |
-|------|--------|-------|-------|
-| UnetLoaderGGUF (1) | unet_name | "flux1-dev-Q4_K_S.gguf" | Q4 quantization balances quality/VRAM |
-| DualCLIPLoaderGGUF (2) | clip_name1 | "t5xxl_fp16.safetensors" | T5-XXL text encoder |
-| DualCLIPLoaderGGUF (2) | clip_name2 | "clip_l.safetensors" | CLIP-L text encoder |
-| DualCLIPLoaderGGUF (2) | type | "flux" | Flux model type |
-| CLIPTextEncode (3) | text | "a serene mountain landscape at golden hour, soft clouds" | Example positive prompt |
-| CLIPTextEncode (4) | text | "" | Empty negative for Flux |
-| EmptySD3LatentImage (5) | width | 1024 | Standard Flux resolution |
-| EmptySD3LatentImage (5) | height | 1024 | Standard Flux resolution |
-| EmptySD3LatentImage (5) | batch_size | 1 | Single image |
-| KSampler (6) | steps | 20 | Good quality/speed balance |
-| KSampler (6) | cfg | 1.0 | Flux uses low cfg |
-| KSampler (6) | sampler_name | "euler" | Standard for Flux |
-| KSampler (6) | scheduler | "normal" | Standard scheduler |
-| KSampler (6) | denoise | 1.0 | Full denoise for txt2img |
-
-### Custom Nodes Required
-- `UnetLoaderGGUF` (ComfyUI-GGUF by city96)
-- `DualCLIPLoaderGGUF` (ComfyUI-GGUF by city96)
-
-### IO Spec
-- **Input:** None (text-to-image, prompt is widget)
-- **Output:** 1 image (SaveImage)
-- **Media type:** image
-
-### Template Metadata
-- **Name:** `gguf-quantized-txt2img`
-- **Tags:** ["GGUF", "Quantized", "Low VRAM", "Flux", "Text to Image"]
-- **Models:** ["flux1-dev-Q4_K_S.gguf", "t5xxl_fp16.safetensors", "clip_l.safetensors", "ae.safetensors"]
-- **VRAM:** ~6 GB (Q4 quantized Flux, down from ~24 GB full precision)
-
----
-
-## Template 3: ComfyUI Impact Pack -- Face Detection + Auto-Detailing
-
-### Purpose
-Demonstrate the FaceDetailer node for automatic face detection and enhancement in generated images. This is the most complex template -- it combines a standard txt2img pipeline with a face post-processing pass.
-
-### Node Graph Architecture
+### Presentation Directory Structure
 
 ```
-CheckpointLoaderSimple ──> CLIPTextEncode (positive) ──┐
-          │            └──> CLIPTextEncode (negative) ──┤
-          │                                             │
-          │  EmptyLatentImage ──────────────────────────┤
-          │                                             v
-          ├────────────────────────────────────────> KSampler
-          │                                             │
-          ├──────────────────────────> VAEDecode <──────┘
-          │                               │
-          │                               v
-          ├──────────────> FaceDetailer <──┘
-          │                     ^    ^
-          │               bbox_det  sam_model
-          │                  │         │
-          │  UltralyticsDetectorProvider │
-          │                    SAMLoader ┘
-          │                     │
-          │                     v
-          └──────────────> SaveImage (enhanced)
-                           PreviewImage (mask)
+presentation/
+  README.md                        # How to render/rebuild assets, Hermes setup
+  manim/
+    scenes/
+      pipeline_flow.py             # Manim scene: discover -> compose -> validate -> document flow
+      architecture_overview.py     # Manim scene: module dependency graph
+      template_showcase.py         # Manim scene: 4 template workflow visualizations
+    media/                         # Rendered output (committed as .mp4/.gif)
+      pipeline_flow.mp4
+      architecture_overview.mp4
+      template_showcase.mp4
+  slides/
+    comfyui-template-agent.pptx    # PowerPoint deck
+    speaker_notes.md               # Speaker notes / async narration script
+  diagrams/
+    architecture.excalidraw        # Excalidraw source
+    architecture.svg               # Exported SVG for embedding
+    workflow-pipeline.excalidraw
+    workflow-pipeline.svg
+  demo/
+    walkthrough.md                 # Script for recorded demo
+    demo_commands.sh               # Exact commands to run in demo
 ```
 
-### Nodes (11 nodes, 13 links)
+### Hermes Server Role
 
-| Node | Type | Custom? | Purpose |
-|------|------|---------|---------|
-| 1 | CheckpointLoaderSimple | Core | Load SD/SDXL checkpoint |
-| 2 | CLIPTextEncode | Core | Positive prompt |
-| 3 | CLIPTextEncode | Core | Negative prompt |
-| 4 | EmptyLatentImage | Core | Create empty latent |
-| 5 | KSampler | Core | Generate base image |
-| 6 | VAEDecode | Core | Decode latent to image |
-| 7 | UltralyticsDetectorProvider | Custom | Load YOLO face detection model |
-| 8 | SAMLoader | Custom | Load SAM segmentation model |
-| 9 | FaceDetailer | Custom | Detect and enhance faces |
-| 10 | SaveImage | Core | Save enhanced image |
-| 11 | Note | Core | Explain FaceDetailer parameters |
+Hermes (Ubuntu 24.04, RTX 4090) renders the presentation assets. The workflow:
 
-### Connections
+1. **Development:** Write Manim scenes and diagram sources on the Mac, push to repo.
+2. **Rendering:** SSH to Hermes, pull repo, run `manim render` for scenes. The RTX 4090 handles Manim rendering efficiently.
+3. **Output:** Rendered .mp4/.gif files committed back to `presentation/manim/media/`.
+4. **PowerPoint:** Generated on Hermes using the PowerPoint skill, committed to `presentation/slides/`.
+5. **Excalidraw:** Created on Hermes using the Excalidraw skill, SVG exports committed.
 
-| Source | Output Slot | Target | Input Slot | Type |
-|--------|-------------|--------|------------|------|
-| CheckpointLoaderSimple (1) | MODEL | KSampler (5) | model | MODEL |
-| CheckpointLoaderSimple (1) | CLIP | CLIPTextEncode (2) | clip | CLIP |
-| CheckpointLoaderSimple (1) | CLIP | CLIPTextEncode (3) | clip | CLIP |
-| CheckpointLoaderSimple (1) | VAE | VAEDecode (6) | vae | VAE |
-| CheckpointLoaderSimple (1) | MODEL | FaceDetailer (9) | model | MODEL |
-| CheckpointLoaderSimple (1) | CLIP | FaceDetailer (9) | clip | CLIP |
-| CheckpointLoaderSimple (1) | VAE | FaceDetailer (9) | vae | VAE |
-| CLIPTextEncode (2) | CONDITIONING | KSampler (5) | positive | CONDITIONING |
-| CLIPTextEncode (3) | CONDITIONING | KSampler (5) | negative | CONDITIONING |
-| CLIPTextEncode (2) | CONDITIONING | FaceDetailer (9) | positive | CONDITIONING |
-| CLIPTextEncode (3) | CONDITIONING | FaceDetailer (9) | negative | CONDITIONING |
-| EmptyLatentImage (4) | LATENT | KSampler (5) | latent_image | LATENT |
-| KSampler (5) | LATENT | VAEDecode (6) | samples | LATENT |
-| VAEDecode (6) | IMAGE | FaceDetailer (9) | image | IMAGE |
-| UltralyticsDetectorProvider (7) | BBOX_DETECTOR | FaceDetailer (9) | bbox_detector | BBOX_DETECTOR |
-| SAMLoader (8) | SAM_MODEL | FaceDetailer (9) | sam_model_opt | SAM_MODEL |
-| FaceDetailer (9) | IMAGE | SaveImage (10) | images | IMAGE |
+This is a one-directional build flow. Presentation assets are generated artifacts, not continuously updated. Commit the rendered outputs so consumers do not need Hermes or Manim installed.
 
-### Key Widget Values
+### What Goes in the Presentation
 
-| Node | Widget | Value | Notes |
-|------|--------|-------|-------|
-| CheckpointLoaderSimple (1) | ckpt_name | "v1-5-pruned-emaonly.safetensors" | SD1.5 for broad compatibility |
-| CLIPTextEncode (2) | text | "portrait of a woman, detailed face, photorealistic" | Face-focused prompt |
-| CLIPTextEncode (3) | text | "blurry, low quality, deformed" | Standard negative |
-| EmptyLatentImage (4) | width | 512 | SD1.5 native resolution |
-| EmptyLatentImage (4) | height | 768 | Portrait aspect ratio |
-| KSampler (5) | steps | 25 | Good quality for portraits |
-| KSampler (5) | cfg | 7.0 | Standard SD1.5 cfg |
-| KSampler (5) | sampler_name | "euler_ancestral" | Good for portraits |
-| UltralyticsDetectorProvider (7) | model_name | "face_yolov8m.pt" | Standard face detection model |
-| SAMLoader (8) | model_name | "sam_vit_b_01ec64.pth" | SAM base for face masking |
-| FaceDetailer (9) | guide_size | 512 | Match base resolution |
-| FaceDetailer (9) | steps | 20 | Enhancement steps |
-| FaceDetailer (9) | denoise | 0.4 | Moderate denoise preserves likeness |
-| FaceDetailer (9) | bbox_threshold | 0.5 | Default face detection sensitivity |
+| Asset | Content | Tool | Purpose |
+|-------|---------|------|---------|
+| Pipeline flow animation | Animated 5-phase flow (discover -> ideate -> compose -> validate -> document) | Manim CE 0.20.1 | Show the guided workflow |
+| Architecture diagram | Module dependency graph with data flow arrows | Excalidraw | Technical architecture overview |
+| Template showcase | Side-by-side of 4 template workflow graphs | Manim CE 0.20.1 | Demonstrate deliverables |
+| Slide deck | 15-20 slides: problem, solution, architecture, demo, metrics | PowerPoint | Main presentation |
+| Demo walkthrough | Recorded terminal session using comfy-flow | Screen recording | Show the toolkit in action |
 
-### Custom Nodes Required
-- `FaceDetailer` (ComfyUI-Impact-Pack by ltdrdata)
-- `UltralyticsDetectorProvider` (ComfyUI-Impact-Pack / Impact-Subpack)
-- `SAMLoader` (ComfyUI-Impact-Pack)
+## CI/CD Architecture
 
-### IO Spec
-- **Input:** None (txt2img, prompt is widget)
-- **Output:** 1 image (SaveImage -- enhanced with face detailing)
-- **Media type:** image
+### GitHub Actions: Test Workflow
 
-### Template Metadata
-- **Name:** `impact-pack-face-detailer`
-- **Tags:** ["Face Detection", "Face Enhancement", "Portrait", "Detailing", "Impact Pack"]
-- **Models:** ["v1-5-pruned-emaonly.safetensors", "face_yolov8m.pt", "sam_vit_b_01ec64.pth"]
-- **VRAM:** ~6 GB (SD1.5 + YOLO + SAM)
+A single workflow file that runs on push to master and on PRs:
 
----
+```yaml
+name: Tests
+on:
+  push:
+    branches: [master]
+    paths:
+      - 'src/**'
+      - 'tests/**'
+      - 'pyproject.toml'
+  pull_request:
+    branches: [master]
+    paths:
+      - 'src/**'
+      - 'tests/**'
+      - 'pyproject.toml'
 
-## Template 4: ComfyUI-MelBandRoFormer -- Audio Stem Separation
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ['3.12', '3.13']
 
-### Purpose
-Demonstrate audio source separation -- splitting a music track into vocals and instrumental stems using the MelBandRoFormer model.
+    steps:
+      - uses: actions/checkout@v4
 
-### Node Graph Architecture
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
 
-```
-LoadAudio ──> MelBandRoFormerSampler ──> SaveAudio (vocals)
-                       ^                  └──> SaveAudio (instruments)
-                       │
-MelBandRoFormerModelLoader
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -e ".[dev]"
+
+      - name: Lint
+        run: ruff check src/
+
+      - name: Test
+        run: pytest tests/ -q --tb=short
 ```
 
-### Nodes (5 nodes, 3 links)
+**Design decisions:**
+- **Path filtering:** Only triggers when Python source, tests, or dependencies change. Presentation asset commits do not trigger CI.
+- **Matrix:** Python 3.12 and 3.13. The project requires 3.12+, and 3.13 is the current stable.
+- **No macOS runner:** Tests are pure Python with mocked HTTP (httpx). No platform-specific behavior to test. Ubuntu is cheaper and faster.
+- **No Windows runner:** Same reasoning. The setup.ps1 script is manual-install territory.
+- **Lint + test in one job:** Small enough project that splitting into parallel jobs adds overhead without benefit.
 
-| Node | Type | Custom? | Purpose |
-|------|------|---------|---------|
-| 1 | LoadAudio | Core | Load input audio file |
-| 2 | MelBandRoFormerModelLoader | Custom | Load separation model |
-| 3 | MelBandRoFormerSampler | Custom | Separate vocals from instruments |
-| 4 | SaveAudio | Core | Save vocals stem |
-| 5 | SaveAudio | Core | Save instrumental stem |
-| 6 | Note | Core | Explain model options and parameters |
+### What CI Does NOT Cover (And Why)
 
-### Connections
+| Not Covered | Reason |
+|-------------|--------|
+| Template build scripts (`build.py`) | These require MCP server access for spec fetching. They are one-time build scripts, not runtime code. |
+| Presentation rendering | Requires Manim + GPU. Handled manually on Hermes. |
+| Integration tests with live APIs | Tests use mocked HTTP responses. Live API tests are manual. |
+| PyPI publishing | This is a Claude Code skills repo installed via `git clone + setup.sh`, not a pip-installable library. |
 
-| Source | Output Slot | Target | Input Slot | Type |
-|--------|-------------|--------|------------|------|
-| LoadAudio (1) | AUDIO | MelBandRoFormerSampler (3) | audio | AUDIO |
-| MelBandRoFormerModelLoader (2) | MELROFORMERMODEL | MelBandRoFormerSampler (3) | model | MELROFORMERMODEL |
-| MelBandRoFormerSampler (3) | vocals (slot 0) | SaveAudio (4) | audio | AUDIO |
-| MelBandRoFormerSampler (3) | instruments (slot 1) | SaveAudio (5) | audio | AUDIO |
+### Future CI Enhancement (Not v3.0)
 
-### Key Widget Values
+If the repo gains external contributors, add:
+- `claude-code-action` for automated PR review (Anthropic's official GitHub Action).
+- `dependabot.yml` for dependency updates (matches flimmer-trainer convention).
 
-| Node | Widget | Value | Notes |
-|------|--------|-------|-------|
-| LoadAudio (1) | file | "example_music.wav" | Placeholder input |
-| MelBandRoFormerModelLoader (2) | model_name | "MelBandRoFormer.ckpt" | Default separation model |
-| SaveAudio (4) | filename_prefix | "vocals" | Output prefix for vocals |
-| SaveAudio (5) | filename_prefix | "instruments" | Output prefix for instruments |
+## Migration Plan: aramintak -> alvdansen
 
-### Custom Nodes Required
-- `MelBandRoFormerModelLoader` (ComfyUI-MelBandRoFormer by kijai)
-- `MelBandRoFormerSampler` (ComfyUI-MelBandRoFormer by kijai)
+### Step 1: Create repo on alvdansen org
 
-### IO Spec
-- **Input:** 1 audio (LoadAudio)
-- **Output:** 2 audio (SaveAudio -- vocals + instruments)
-- **Media type:** audio
-
-### Template Metadata
-- **Name:** `melbandroformer-audio-separation`
-- **Tags:** ["Audio", "Source Separation", "Vocals", "Music", "Stem Splitting"]
-- **Models:** ["MelBandRoFormer.ckpt"]
-- **VRAM:** ~2 GB
-
----
-
-## Build Order and Dependencies
-
-### Independence Analysis
-
-All 4 templates are independent of each other. None share custom nodes, none build on each other, and they target different media types (vision analysis, image generation, image post-processing, audio). They can theoretically be built in parallel.
-
-However, there is a practical build order based on complexity and pattern reuse:
-
-### Recommended Build Order
-
-```
-Phase 1: MelBandRoFormer (simplest -- 5 nodes, 3 links)
-    |
-    v
-Phase 2: Florence2 (simple -- 6 nodes, 4 links, new output type: text/mask)
-    |
-    v
-Phase 3: GGUF txt2img (medium -- 9 nodes, 8 links, builds on familiar txt2img pattern)
-    |
-    v
-Phase 4: Impact Pack FaceDetailer (complex -- 11 nodes, 17 links, fan-out from checkpoint)
+```bash
+gh repo create alvdansen/comfyui-template-agent --public --description "Claude Code agent toolkit for ComfyUI template creation"
 ```
 
-### Rationale
+### Step 2: Update remote and push
 
-| Order | Template | Nodes | Links | Why This Order |
-|-------|----------|-------|-------|----------------|
-| 1st | MelBandRoFormer | 5 | 3 | Simplest graph. Linear pipeline. Validates the compose-validate-document flow end-to-end with minimal risk. Audio media type exercises the `SaveAudio` detection in metadata. |
-| 2nd | Florence2 | 6 | 4 | Still simple but introduces a new pattern: model loader feeding a processor node with multiple outputs. Exercises mask output handling. |
-| 3rd | GGUF txt2img | 9 | 8 | Familiar txt2img pattern (mirrors existing Flux fixtures) but with GGUF loader swaps. Validates `DualCLIPLoaderGGUF` fan-out to two CLIPTextEncode nodes. |
-| 4th | Impact Pack FaceDetailer | 11 | 17 | Most complex graph. Checkpoint fan-out to both KSampler and FaceDetailer. Multiple detector providers feeding into FaceDetailer. Many widget parameters to configure. Do this last when the compose/validate/document flow is well-practiced. |
-
-### What Each Template Validates in the Toolchain
-
-| Template | Toolchain Aspect Exercised |
-|----------|---------------------------|
-| MelBandRoFormer | Audio IO detection, custom connection type (MELROFORMERMODEL), dual output from single node |
-| Florence2 | Custom model type (FL2MODEL), text output (out_results), mask output alongside image |
-| GGUF txt2img | GGUF-specific loader nodes as drop-in replacements, DualCLIPLoader fan-out pattern |
-| Impact Pack | Complex fan-out from checkpoint, custom types (BBOX_DETECTOR, SAM_MODEL), high parameter count on FaceDetailer |
-
-## Patterns Across All Templates
-
-### Common Composition Pattern
-
-Every template follows this structure when built with `WorkflowGraph`:
-
-```python
-from src.composer.graph import WorkflowGraph
-from src.composer.node_specs import NodeSpecCache
-from src.composer.compose import save_workflow
-
-# 1. Fetch specs via MCP for all node types used
-specs = NodeSpecCache()
-# For each node type: specs.from_mcp_response(name, raw_dict_from_mcp)
-
-# 2. Build graph
-g = WorkflowGraph(specs=specs)
-
-# 3. Add nodes (returns node ID)
-loader_id = g.add_node("LoadImage", title="Input Image")
-processor_id = g.add_node("CustomProcessor", title="Process")
-
-# 4. Connect (type-checked)
-g.connect(loader_id, "IMAGE", processor_id, "image")
-
-# 5. Configure widgets
-g.set_widget(processor_id, "param_name", value)
-
-# 6. Save (auto-layout + lenient validation)
-result = save_workflow(g, "templates/my-template/workflow.json")
+```bash
+git remote set-url origin https://github.com/alvdansen/comfyui-template-agent.git
+git push -u origin master
 ```
 
-### Note Node Convention
+### Step 3: Update internal references
 
-Every template includes a Note node with black background explaining:
-- What the template does
-- What the custom node pack provides
-- Key parameters the user can adjust
-- Links to the node pack repo
+Files with `aramintak` references:
+- `.git/config` (handled by remote set-url)
+- No source code references found
 
-Note node config:
-```python
-note_id = g.add_node("Note", title="About This Template")
-# Note has no connections -- it's informational only
-# Set bgcolor to "#000000" in the node dict after creation
-```
+### Step 4: Archive the original
 
-Since `Note` nodes have no connection inputs/outputs and only widget values (text content), they are added but not connected. The black background color must be set directly on the GraphNode after creation:
-```python
-node = g.get_node(note_id)
-node.bgcolor = "#000000"
-node.color = "#000000"
-```
+Either delete `aramintak/comfyui-template-agent` or mark it archived with a redirect note in the README.
 
-### Custom Connection Types
+## Patterns to Follow
 
-The existing `CONNECTION_TYPES` set in `src/composer/models.py` does not include all types used by these templates. The following custom types will flow through the wildcard (`*`) compatibility path or need to be treated as connection types:
+### Pattern 1: Skill as CLI Wrapper
+**What:** Each Claude Code skill is a thin SKILL.md that invokes `python -m src.module.script` with CLI arguments.
+**When:** Always. Skills are the interface layer; Python modules are the implementation layer.
+**Why this matters for v3.0:** Public consumers install skills via symlink (setup.sh). The Python package must be editable-installed for `python -m` to resolve. The setup script handles this correctly.
 
-| Custom Type | Used By | Handling |
-|-------------|---------|----------|
-| FL2MODEL | Florence2 | Passed through as custom connection type (not in WIDGET_TYPES, not in CONNECTION_TYPES, treated as connection) |
-| MELROFORMERMODEL | MelBandRoFormer | Same -- custom connection type |
-| BBOX_DETECTOR | Impact Pack | Same -- custom connection type |
-| SAM_MODEL | Impact Pack | Same -- custom connection type |
-| DETAILER_PIPE | Impact Pack | Same -- custom connection type |
+### Pattern 2: Build Scripts as Template Reproducibility
+**What:** Each template includes a `build.py` that reconstructs the workflow from node specs using the composer module.
+**When:** Every template. The build script serves as both documentation and reproducibility.
+**Why this matters for v3.0:** Build scripts demonstrate the toolkit's value. They show exactly how each template was composed programmatically. Public consumers can study these as usage examples.
 
-The existing `is_widget_input()` function handles these correctly: unknown types default to `return False` (treated as connections, not widgets). No code changes needed.
-
-### Validation Behavior
-
-All templates will produce these validation results:
-
-| Rule | Florence2 | GGUF | Impact Pack | MelBandRoFormer |
-|------|-----------|------|-------------|-----------------|
-| core_node_preference | 2 warnings | 2 warnings | 3 warnings | 2 warnings |
-| no_set_get_nodes | PASS | PASS | PASS | PASS |
-| note_color_black | PASS (if configured) | PASS | PASS | PASS |
-| cloud_compatible | INFO reminder | INFO | INFO | INFO |
-| thumbnail_specs | INFO reminder | INFO | INFO | INFO |
-| api_node_auth | PASS (no API nodes) | PASS | PASS | PASS |
-| subgraph_rules | PASS (no subgraphs) | PASS | PASS | PASS |
-
-Custom node warnings are expected and intentional. The templates exist to showcase these custom node packs.
+### Pattern 3: Static Data Over Live Fetching
+**What:** Core node lists, guidelines, and API node data are committed as JSON in `data/`. Scripts in `scripts/` refresh them periodically.
+**When:** For any data that changes slowly (node lists, guidelines).
+**Why this matters for v3.0:** New users can run the toolkit offline (except for registry browsing and template fetching). No first-run download step for static data.
 
 ## Anti-Patterns to Avoid
 
-### Anti-Pattern: Building With API Format
-**What:** Composing workflows in API format (flat dict with string keys) instead of workflow format.
-**Why bad:** The compositor, validator, and serializer all expect workflow format. API format requires a separate conversion step and loses graph structure.
-**Instead:** Always use `WorkflowGraph` which outputs workflow format (nodes[] + links[], version 0.4).
+### Anti-Pattern: Splitting Skills Into a Separate Repo
+**What:** Moving `.claude/skills/` into its own repo for "cleaner distribution."
+**Why bad:** Skills depend on the Python package being editable-installed. Splitting creates a cross-repo dependency that breaks the setup.sh symlink flow.
+**Instead:** Keep everything in one repo. The setup script handles both package install and skill symlinking.
 
-### Anti-Pattern: Hardcoded Widget Indices
-**What:** Setting widget values by index position (e.g., `node.widgets_values[3] = value`).
-**Why bad:** Widget order depends on the node spec. If the spec changes, indices break silently.
-**Instead:** Use `g.set_widget(node_id, "widget_name", value)` which resolves by name using the spec.
+### Anti-Pattern: Gitignoring .planning/
+**What:** Hiding the planning artifacts from the public repo.
+**Why bad:** The planning directory contains architecture decisions, research findings, and phase summaries that explain WHY the code is structured the way it is. This is valuable documentation.
+**Instead:** Keep `.planning/` committed. It demonstrates the GSD methodology and provides architectural context.
 
-### Anti-Pattern: Skipping Spec Fetch
-**What:** Adding nodes without fetching their specs from MCP first.
-**Why bad:** Without specs, `add_node` creates nodes with empty inputs/outputs/widgets. Connections cannot be type-checked. `set_widget` raises KeyError.
-**Instead:** Always fetch specs via MCP `search_nodes` before building. Cache them via `NodeSpecCache.from_mcp_response()`.
+### Anti-Pattern: Rendering Presentation Assets in CI
+**What:** Adding Manim rendering to the GitHub Actions pipeline.
+**Why bad:** Manim requires ffmpeg, LaTeX, and ideally GPU access for fast rendering. CI runners lack GPU. Rendering is slow (~minutes per scene on CPU). Scenes change infrequently.
+**Instead:** Render on Hermes, commit the output. Treat rendered videos/images as artifacts, not build outputs.
 
-### Anti-Pattern: Manual Position Assignment
-**What:** Manually calculating x/y positions for each node.
-**Why bad:** Tedious, error-prone, and produces inconsistent layouts across templates.
-**Instead:** Let `auto_layout()` handle positioning. It produces clean left-to-right DAG layouts.
+### Anti-Pattern: Overpolishing the README
+**What:** Turning the README into a comprehensive tutorial with screenshots and animated GIFs.
+**Why bad:** This is an internal-to-Comfy deliverable, not a public OSS project seeking community adoption. The audience is Comfy developers who will stress-test and absorb the toolkit.
+**Instead:** Clear, factual README: what it does, how to install, skills reference, architecture summary. The presentation deck handles the "sell."
 
-## Scalability: Adding More Templates Later
+## Build Order for v3.0 Changes
 
-The architecture supports adding unlimited additional templates with zero code changes. The process per template:
+Dependencies flow top-to-bottom. Items at the same level can be parallelized.
 
-1. Create directory under `templates/`
-2. Fetch node specs via MCP
-3. Build graph with `WorkflowGraph`
-4. Save, validate, generate docs
-5. Done
+```
+Phase 1: Repo Hygiene (no code changes, no dependencies)
+  |- Add LICENSE (MIT)
+  |- Update .gitignore (add *.egg-info/, verify .venv/)
+  |- Remove comfyui_template_agent.egg-info/ from git tracking
+  |- Update pyproject.toml (version 1.0.0, license, URLs)
 
-If the team wants to batch-produce templates, the pattern is fully repeatable. The only variable is the node types, connections, and widget values -- all configured at composition time, not in code.
+Phase 2: Content Cleanup (depends on Phase 1 for version)
+  |- Rewrite README.md for public audience
+  |- Trim CLAUDE.md (remove comfy-tip refs, Windows paths)
+  |- Move COMPAT-FIX.md to docs/compatibility.md
+  |- Update setup.ps1 with venv support
+
+Phase 3: CI/CD Setup (independent of Phase 2, but logically after repo hygiene)
+  |- Create .github/workflows/test.yml
+  |- Create .github/ISSUE_TEMPLATE/ (optional, low priority)
+  |- Verify tests pass in CI environment
+
+Phase 4: Migration (depends on Phases 1-3 being committed)
+  |- Create repo on alvdansen org
+  |- Push to new remote
+  |- Archive aramintak repo
+
+Phase 5: Presentation Assets (independent of Phases 1-4, runs on Hermes)
+  |- Create presentation/ directory structure
+  |- Write Manim scenes
+  |- Write slide deck
+  |- Create Excalidraw diagrams
+  |- Record demo walkthrough
+  |- Commit rendered outputs
+```
+
+**Phase ordering rationale:**
+- Phases 1-2 must happen before Phase 4 (migration) so the first push to alvdansen is clean.
+- Phase 3 can run in parallel with Phase 2 since CI tests the existing code, not the README.
+- Phase 5 is fully independent and runs on Hermes while Phases 1-4 happen on the Mac. This is the key parallelism opportunity.
+
+## Scalability Considerations
+
+| Concern | Current (4 templates, 1 user) | At 20 templates | At external contributors |
+|---------|------|------|------|
+| Test suite speed | ~0.5s (mocked HTTP) | ~1s (more fixtures) | Same (mocked) |
+| Setup script | Symlinks 6 skills | Same 6 skills | Same |
+| CI cost | ~1 min per run | ~1 min | Add PR review bot |
+| Skill maintenance | 6 x (SKILL.md + gotchas.md) | Same 6 skills | Version skill docs |
+| Template discovery | Manual `build.py` per template | Consider template registry script | Template submission guidelines |
 
 ## Sources
 
-- [ComfyUI-Florence2 by kijai](https://github.com/kijai/ComfyUI-Florence2) -- Florence2 node pack
-- [Florence2Run node documentation](https://www.runcomfy.com/comfyui-nodes/ComfyUI-Florence2/Florence2Run) -- Input/output details
-- [ComfyUI-GGUF by city96](https://github.com/city96/ComfyUI-GGUF) -- GGUF loader nodes
-- [ComfyUI-GGUF node documentation](https://www.runcomfy.com/comfyui-nodes/ComfyUI-GGUF) -- Node listing
-- [ComfyUI Impact Pack by ltdrdata](https://github.com/ltdrdata/ComfyUI-Impact-Pack) -- FaceDetailer and detectors
-- [FaceDetailer node documentation](https://www.runcomfy.com/comfyui-nodes/ComfyUI-Impact-Pack/FaceDetailer) -- Input/output details
-- [FaceDetailer detailed docs](https://comfyai.run/documentation/FaceDetailer) -- Required/optional inputs
-- [ComfyUI-MelBandRoFormer by kijai](https://github.com/kijai/ComfyUI-MelBandRoFormer) -- Audio separation nodes
-- [MelBandRoFormer nodes.py source](https://github.com/kijai/ComfyUI-MelBandRoFormer/blob/main/nodes.py) -- Exact NODE_CLASS_MAPPINGS
-- [Comfy-Org workflow_templates repo](https://github.com/Comfy-Org/workflow_templates) -- Official template naming and structure conventions
+- [alvdansen/flimmer-trainer](https://github.com/alvdansen/flimmer-trainer) -- Alvdansen org conventions: MIT license, .github/workflows/test.yml, CONTRIBUTING.md, CODE_OF_CONDUCT.md (HIGH confidence, direct inspection)
+- [GitHub Best Practices for Repositories](https://docs.github.com/en/repositories/creating-and-managing-repositories/best-practices-for-repositories) -- Repository naming, branch protection (HIGH confidence, official docs)
+- [PEP 639 -- License Metadata](https://peps.python.org/pep-0639/) -- pyproject.toml license field format (HIGH confidence, PEP standard)
+- [Python Packaging User Guide -- pyproject.toml](https://packaging.python.org/en/latest/guides/writing-pyproject-toml/) -- Modern pyproject.toml structure (HIGH confidence, official docs)
+- [anthropics/claude-code-action](https://github.com/anthropics/claude-code-action) -- Official GitHub Actions for Claude Code CI/CD (HIGH confidence, Anthropic official)
+- [Claude Code GitHub Actions Docs](https://code.claude.com/docs/en/github-actions) -- CI integration patterns (HIGH confidence, official docs)
+- [Manim Community v0.20.1 Docs](https://docs.manim.community/en/stable/) -- Manim project structure and rendering (HIGH confidence, official docs)
+- [Gofore -- Best Practices for Forking](https://gofore.com/en/best-practices-for-forking-a-git-repo/) -- Repo migration patterns (MEDIUM confidence, blog post)

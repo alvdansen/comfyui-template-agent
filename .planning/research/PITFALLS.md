@@ -1,461 +1,367 @@
-# Domain Pitfalls: v2.0 Template Batch
+# Domain Pitfalls
 
-**Domain:** ComfyUI workflow template creation for 4 specific node packs
-**Researched:** 2026-03-25
-**Overall confidence:** MEDIUM-HIGH
-**Scope:** Pitfalls specific to creating production-ready templates for ComfyUI-Florence2, ComfyUI-GGUF, ComfyUI Impact Pack, and ComfyUI-MelBandRoFormer
+**Domain:** Publishing internal Claude Code agent toolkit + async presentation materials
+**Researched:** 2026-04-08
+**Milestone:** v3.0 — Publish & Present
 
 ---
 
 ## Critical Pitfalls
 
-Mistakes that cause template rejection, rewrite, or cloud failure.
+Mistakes that cause embarrassment, security incidents, or major rework.
 
-### Pitfall 1: GGUF Format Blocked by Template Model Embedding System
+### Pitfall 1: Git History Leaks Personal and Internal Data
 
-**What goes wrong:** The ComfyUI template system's model embedding feature (which allows users to auto-download models when loading a template) explicitly treats `.gguf` files as "unsafe." When a GGUF model URL is embedded in a node's `properties.models`, it "will be flagged as unsafe and the link will not be shown" to the user. This means the GGUF template cannot use the standard model auto-download mechanism that every other template relies on.
+**What goes wrong:** The repo goes public with 111 commits containing personal identifiers, internal paths, and planning artifacts baked into the permanent history. Even if files are removed from HEAD, they remain in git objects forever. Anyone can `git log --all -p` and find:
+- Personal email addresses: `macapple@Mac.attlocal.net`, `macapple@Timotheoss-MacBook-Pro.local`, `peppamintdynamo@gmail.com`
+- Local machine hostnames embedded in git author metadata
+- Internal planning artifacts with developer names and workflow decisions
+- Windows paths from comfy-tip heritage: `C:/Users/minta/Projects/comfy-tip/` (in 13+ planning files)
+- The original remote `aramintak/comfyui-template-agent` which differs from the target `Alvdansen Labs` org
 
-**Why it happens:** The template system only accepts "safe" formats (`.safetensors`, `.sft`). The `.gguf` format, while perfectly functional, is classified as unsafe by the template embedding policy. This is a policy decision in the ComfyUI template system, not a technical limitation.
+**Why it happens:** The repo was developed as a personal internal tool over two milestones with no expectation of public visibility. Git author metadata auto-populates from local machine config. Planning files reference source material by absolute path.
 
-**Consequences:** Users who load the GGUF template will NOT get an automatic model download prompt. They must manually find, download, and place GGUF model files into `ComfyUI/models/unet` before the workflow can run. This is a significantly worse UX than other templates and may cause the template to fail review.
-
-**Affects:** ComfyUI-GGUF template exclusively.
-
-**Prevention:**
-- Document the manual model download step prominently in the template description and Notion submission
-- Consider whether a `.safetensors` fallback workflow makes more sense for the template (defeats the purpose of GGUF though)
-- Investigate if the template can reference the T5/CLIP text encoder models in `.safetensors` (which CAN be auto-downloaded) while only requiring manual placement of the GGUF UNET
-- In the index.json metadata, explicitly note that this template requires manual model setup
-- Add a Note node in the workflow explaining where to get the GGUF model file
-
-**Warning signs:**
-- Template passes validation but fails user testing because models are not auto-downloaded
-- Review feedback: "models not found on load"
-
-**Detection:** Validator should flag any template using `UnetLoaderGGUF` and warn about the model embedding limitation.
-
-**Confidence:** HIGH -- verified directly from [ComfyUI template docs](https://docs.comfy.org/interface/features/template) which state ".gguf are considered unsafe."
-
----
-
-### Pitfall 2: Impact Pack Requires TWO Node Packs (Subpack Dependency)
-
-**What goes wrong:** The FaceDetailer workflow requires `UltralyticsDetectorProvider` to load the face detection model (e.g., `face_yolov8m.pt`). This node does NOT exist in ComfyUI-Impact-Pack itself -- it lives in the separate [ComfyUI-Impact-Subpack](https://github.com/ltdrdata/ComfyUI-Impact-Subpack). Creating a FaceDetailer template that references `UltralyticsDetectorProvider` without declaring the Subpack dependency means the template breaks for any user who only installs Impact Pack.
-
-**Why it happens:** The Impact Pack split its YOLO/Ultralytics detection into a separate "Subpack" because it has a heavy `ultralytics` pip dependency. The main Impact Pack provides the `FaceDetailer` node, but the detection model loading is delegated to the Subpack. This is a non-obvious split -- most tutorials and references describe "Impact Pack" as a single entity.
-
-**Consequences:** Users install Impact Pack, load the template, and get "Node type not found: UltralyticsDetectorProvider" error. The template appears broken even though the user followed the stated dependencies.
-
-**Affects:** ComfyUI Impact Pack template.
+**Consequences:** Personal information exposed publicly. The comfy-tip path references reveal the original developer's Windows username (`minta`). Professional credibility impact if the published repo looks like it wasn't cleaned for public consumption.
 
 **Prevention:**
-- List BOTH `ComfyUI-Impact-Pack` AND `ComfyUI-Impact-Subpack` in `requiresCustomNodes` metadata
-- In the template description, explicitly state both packs are needed
-- Add a Note node in the workflow explaining: "Requires Impact Pack + Impact Subpack"
-- The YOLO model file must go in `ComfyUI/models/ultralytics/bbox/face_yolov8m.pt` -- embed this path clearly
-- Consider using `ONNXDetectorProvider` from the main Impact Pack as an alternative (but YOLO is more accurate)
+1. Run `gitleaks detect --source . --verbose` on the full repo to find any secrets or sensitive patterns
+2. Decide: fresh commit history (squash all to single commit or cherry-pick key commits) vs. rewrite with `git filter-repo` to clean author metadata
+3. Fresh history is STRONGLY recommended for this repo — 111 commits of internal development process do not add value for external consumers, and rewriting is error-prone
+4. If preserving history: use `git filter-repo --mailmap` to normalize all author/committer emails to the public-facing identity
+5. Verify with `git log --format='%an <%ae>' | sort -u` after cleanup
 
-**Warning signs:**
-- Template validates (node types check out against specs) but fails at runtime because Subpack is missing
-- Custom node list in metadata only mentions Impact Pack
+**Detection:** Run `git shortlog -sne --all` — if you see multiple identities or local hostnames, cleanup is needed.
 
-**Detection:** The validator's `check_core_node_preference` rule will flag custom nodes, but it won't distinguish between "installed via Impact Pack" and "requires separate Subpack install." Add a special case for `UltralyticsDetectorProvider` -> warn about Subpack requirement.
+### Pitfall 2: Publishing .planning/ Directory as-is
 
-**Confidence:** HIGH -- verified from [Impact-Subpack repo](https://github.com/ltdrdata/ComfyUI-Impact-Subpack) which confirms UltralyticsDetectorProvider is exclusively in the Subpack.
+**What goes wrong:** The `.planning/` directory (784 KB across phases, milestones, research, roadmaps, retrospectives) ships with the public repo. This contains:
+- GSD workflow internals (state machine, velocity metrics, session timing)
+- Phase execution plans with implementation details, line-by-line code plans
+- Developer-facing retrospectives ("what was inefficient")
+- Internal requirement tracking and validation checklists
+- Research files referencing comfy-tip source code paths
 
----
+**Why it happens:** The `.planning/` directory is integral to the GSD workflow and is checked into git. There is no `.gitignore` entry for it. The natural assumption is "it's just planning docs" but it exposes process internals that are confusing or unprofessional for external consumers.
 
-### Pitfall 3: Florence2 Model Auto-Download During Template Load
-
-**What goes wrong:** The `DownloadAndLoadFlorence2Model` node downloads models from Hugging Face at runtime (2-7 GB per model variant). On first use, this triggers a multi-GB download that can take several minutes. On Comfy Cloud, this download happens on every cold start unless the model is pre-cached. The template appears to "hang" or "fail" when it's actually just downloading.
-
-**Why it happens:** Florence2 uses a custom download-and-load pattern rather than ComfyUI's standard model loader path. Models go to `ComfyUI/models/LLM`, not the standard `checkpoints` or `diffusion_models` directories. The `DownloadAndLoadFlorence2Model` node handles its own HuggingFace download logic, bypassing the template model embedding system entirely.
-
-**Consequences:**
-- First-time users wait 2-10 minutes with no progress feedback
-- On cloud: cold starts incur download time every time (unless cached)
-- Cloud GPU billing accumulates during download (not during inference)
-- Model size varies by variant: `florence-2-base` ~0.5GB, `florence-2-large` ~1.5GB, `florence-2-large-ft` ~1.5GB
-- Using `florence-2-large` with `fp32` requires 16GB+ VRAM
-
-**Affects:** ComfyUI-Florence2 template.
+**Consequences:** External users see internal process artifacts alongside the actual product. It clutters the repo with files irrelevant to using or contributing to the tool. The retrospective contains velocity metrics that are meaningless without context.
 
 **Prevention:**
-- Default the template to `florence-2-base-ft` (best quality-to-size ratio for general use)
-- Set precision to `fp16` (not `fp32`) to halve VRAM usage
-- Set attention to `sdpa` (widest compatibility, no special hardware needed)
-- Add a Note node: "First run downloads ~1GB model. Subsequent runs use cache."
-- In Notion submission, document the download behavior and expected wait time
-- Set `keep_model_loaded: True` if the template runs Florence2 multiple times
-- Consider using `Florence2ModelLoader` (loads from local path) instead of `DownloadAndLoadFlorence2Model` -- this allows embedding the model in template properties for auto-download, IF the model is in `.safetensors` format
+- Option A (recommended): Add `.planning/` to `.gitignore` before publishing, remove from tracking with `git rm -r --cached .planning/`
+- Option B: Move select useful docs (architecture decisions, design rationale) to a `docs/` directory in cleaned form, exclude the rest
+- Option C: If using fresh history (see Pitfall 1), simply don't include `.planning/` in the initial commit
 
-**Warning signs:**
-- Template times out on cloud testing
-- User reports "workflow stuck" -- actually downloading
-- VRAM OOM errors when using `large` variant with `fp32`
+**Detection:** Check if `.planning/` exists in the published tree. Ask: "Would an external user benefit from any of these files?"
 
-**Detection:** Check the Florence2 loader node's widget values for precision and model variant. Flag `fp32` + `large` combo as high-VRAM risk.
+### Pitfall 3: No LICENSE File
 
-**Confidence:** HIGH -- verified from [Florence2 memory management docs](https://deepwiki.com/kijai/ComfyUI-Florence2/7.1-memory-management) and [node documentation](https://deepwiki.com/kijai/ComfyUI-Florence2).
+**What goes wrong:** The repo ships publicly without a LICENSE file. Currently there is NO license file in the repository. Without an explicit license, the code is technically "all rights reserved" by default under copyright law — meaning nobody can legally use, modify, or distribute it, even though it is publicly visible.
 
----
+**Why it happens:** Internal tools don't need licenses. The decision gets deferred during development.
 
-### Pitfall 4: Audio Nodes Missing from core_nodes.json (Stale Core List)
-
-**What goes wrong:** The project's `data/core_nodes.json` does NOT include `LoadAudio` or `SaveAudio`, even though these are built-in ComfyUI core nodes (in `comfy_extras/nodes_audio.py`). The MelBandRoFormer template needs `LoadAudio` for input and `SaveAudio` for output. When the template is validated, these core audio nodes will be incorrectly flagged as "custom nodes" by `check_core_node_preference`, producing spurious warnings.
-
-**Why it happens:** The `core_nodes.json` was generated at a point when audio nodes were not yet added to ComfyUI core, or the generation script missed `comfy_extras/` nodes. The validate gotchas doc already notes: "ComfyUI adds new core nodes regularly. If a known core node gets flagged as custom, run `python scripts/update_core_nodes.py` to refresh."
-
-**Consequences:**
-- MelBandRoFormer template validation produces false-positive warnings about `LoadAudio`/`SaveAudio`
-- The `requiresCustomNodes` metadata in index.json incorrectly lists `LoadAudio`/`SaveAudio` as dependencies
-- The metadata generation (`_detect_custom_nodes`) will include audio nodes in the custom node list
-- The `_detect_media_type` function in `metadata.py` checks for `SaveAudio` to detect audio media type -- this works correctly, but the custom node detection runs separately and contradicts it
-
-**Affects:** ComfyUI-MelBandRoFormer template directly. Also affects any future audio template.
+**Consequences:** Contributors and users have no legal basis to use the code. Comfy-Org cannot absorb the code into their org without a clear license. Other developers rightfully won't touch it. GitHub's licensing detection will show "No license" which signals an amateur or abandoned project.
 
 **Prevention:**
-- Update `core_nodes.json` BEFORE building any templates -- add at minimum: `LoadAudio`, `SaveAudio`, `EmptyLatentAudio`, `StableAudioSampler`, `StableAudioConditioning`
-- Run `python scripts/update_core_nodes.py` or manually add the audio nodes
-- After updating, verify that validation no longer flags `LoadAudio`/`SaveAudio`
+1. Choose a license BEFORE the first public commit
+2. Recommendation: **Apache 2.0** — provides patent protection, is standard for Python tools in this ecosystem, and aligns with ComfyUI's GPL-3.0 (Apache 2.0 is compatible as a permissive license being consumed by a copyleft project)
+3. Alternative: MIT if simplicity is preferred, but Apache 2.0's patent clause is safer when the code may be absorbed into a larger org
+4. Add LICENSE file to repo root and `license` field to `pyproject.toml`
 
-**Warning signs:**
-- Validation output includes "Custom node 'LoadAudio' -- not a core node"
-- Generated index.json lists LoadAudio/SaveAudio in requiresCustomNodes
+**Detection:** `ls LICENSE*` returns nothing. `pyproject.toml` has no license field.
 
-**Detection:** Run validation on any workflow containing `LoadAudio` -- if it flags as custom, the core list is stale.
+### Pitfall 4: Skill Symlink Installation Breaks on Fresh Machines
 
-**Confidence:** HIGH -- verified by searching `core_nodes.json` (no audio nodes present) and confirming [LoadAudio is in core ComfyUI](https://github.com/comfyanonymous/ComfyUI/blob/master/comfy_extras/nodes_audio.py).
+**What goes wrong:** The `setup.sh` creates symlinks from `~/.claude/skills/comfy-*` pointing to the repo's `.claude/skills/` directory. This coupling means:
+- Skills break if the repo directory is moved, renamed, or deleted
+- Symlinks are absolute paths tied to the machine's filesystem layout
+- Windows symlinks require Developer Mode or Admin privileges (noted in setup.ps1 but easy to miss)
+- Claude Code's skill resolution may not follow symlinks in all environments
+- If a user already has skills with conflicting names (especially `comfy-discover` from the global `comfy-tip`), the setup script logs a warning but doesn't resolve the conflict
 
----
+**Why it happens:** Symlinks were the quickest distribution method for an internal tool used by one developer.
 
-### Pitfall 5: MelBandRoFormer Models Live in diffusion_models, Not a Custom Path
-
-**What goes wrong:** The MelBandRoFormer model loader uses `folder_paths.get_filename_list("diffusion_models")` -- meaning models must be in `ComfyUI/models/diffusion_models/`. This is the SAME directory used by Flux, SD3, and other diffusion UNET models. If the template embeds a model download pointing to this directory, the model file (`MelBandRoformer_fp16.safetensors`, ~456MB) gets mixed in with all the user's diffusion models. More critically, users may not realize to place the audio model here because "diffusion_models" sounds like it's only for image generation models.
-
-**Why it happens:** MelBandRoFormer reuses an existing ComfyUI folder path rather than registering a custom model directory. This is a pragmatic choice by the node author but creates confusion.
-
-**Consequences:**
-- Users download the model but put it in `models/audio/` or another intuitive location -- workflow fails with "model not found"
-- The shared `diffusion_models` directory becomes cluttered with unrelated model types
-- Template model embedding uses `"directory": "diffusion_models"` which is technically correct but semantically confusing
-
-**Affects:** ComfyUI-MelBandRoFormer template.
+**Consequences:** Setup fails silently or creates broken skill references on other machines. Windows users hit permission errors. The README mentions the comfy-tip conflict but the setup script only SKIPs — it doesn't offer to replace.
 
 **Prevention:**
-- In the template, add a Note node specifying: "Model goes in ComfyUI/models/diffusion_models/"
-- Use the exact model filename in the template's widgets_values: `MelBandRoformer_fp16.safetensors`
-- Embed the model in node properties with: `"directory": "diffusion_models"`, `"url": "https://huggingface.co/Kijai/MelBandRoFormer_comfy/resolve/main/MelBandRoformer_fp16.safetensors"` -- the model IS `.safetensors` so it CAN be auto-downloaded via the template system
-- In Notion docs, explain the directory choice
+1. Document the symlink approach honestly in README, including the "repo must stay in place" constraint
+2. Add an `--uninstall` flag to setup scripts that cleanly removes symlinks
+3. Consider alternative: copy skills instead of symlinking (loses live-editing but gains portability)
+4. For public release, the recommended pattern per Claude Code docs is to commit skills to the project `.claude/skills/` and let users clone the repo — Claude Code auto-discovers project skills without symlinking
+5. Test setup.sh on a fresh macOS and Linux machine (not just the development machine)
 
-**Warning signs:**
-- User reports "model not found" despite having downloaded it
-- Model dropdown in the node doesn't show the MelBandRoFormer model
-
-**Confidence:** HIGH -- verified from [nodes.py source](https://github.com/kijai/ComfyUI-MelBandRoFormer/blob/main/nodes.py) which uses `folder_paths.get_filename_list("diffusion_models")`.
+**Detection:** Run `ls -la ~/.claude/skills/comfy-*` on a fresh machine after setup — dangling symlinks indicate the problem.
 
 ---
 
 ## Moderate Pitfalls
 
-### Pitfall 6: Florence2 Task-Specific Text Input Constraint
+### Pitfall 5: comfy-tip Heritage Creates Naming Confusion
 
-**What goes wrong:** The `Florence2Run` node's `text_input` field is only used by 3 of the 14 tasks: `referring_expression_segmentation`, `caption_to_phrase_grounding`, and `docvqa`. For all other tasks (captioning, OCR, region proposals), the text_input is silently ignored. Template creators who set a descriptive text_input for a captioning task create a misleading template -- users think they're providing a prompt, but it has no effect.
+**What goes wrong:** The codebase was built on top of `comfy-tip` (a separate repo/tool). References to comfy-tip appear in:
+- CLAUDE.md project constraints ("matches existing comfy-tip and MCP tooling")
+- README.md tip about naming conflicts
+- 24 files in `.planning/` referencing comfy-tip architecture, scoring heuristics, Windows paths
+- Key Decisions table mentioning "Build on comfy-tip + MCP rather than from scratch"
+- Phase 1 research docs containing comfy-tip source code snippets and file paths
 
-**Why it happens:** Florence2 is a multi-task model where most tasks are unconditional (no text prompt needed). The node accepts text_input as a universal parameter but only forwards it to tasks that support prompts. There's no validation or warning when text_input is provided to a non-prompt task.
-
-**Affects:** ComfyUI-Florence2 template.
-
-**Prevention:**
-- Match the task type to the text_input presence:
-  - Tasks that USE text_input: `referring_expression_segmentation`, `caption_to_phrase_grounding`, `docvqa`
-  - Tasks that IGNORE text_input: `caption`, `detailed_caption`, `more_detailed_caption`, `region_caption`, `dense_region_caption`, `region_proposal`, `ocr`, `ocr_with_region`, `prompt_gen_*`
-- For the template, choose a task that demonstrates value clearly: `more_detailed_caption` (unconditional) or `caption_to_phrase_grounding` (uses text input)
-- Add a Note node explaining which tasks accept text input
-
-**Warning signs:**
-- Template has text_input connected/set but task is `caption` -- the input does nothing
-- User changes the text and sees no change in output
-
-**Confidence:** HIGH -- documented in [Florence2 node analysis](https://deepwiki.com/kijai/ComfyUI-Florence2/4.2-florence2run-node).
-
----
-
-### Pitfall 7: Impact Pack Version Instability and Parameter Drift
-
-**What goes wrong:** ComfyUI Impact Pack has a history of breaking changes where "when a new parameter is created in an update, the values of nodes created in the previous version can be shifted to different fields." Between versions 2.22 and 2.21, there was partial compatibility loss. Version 8.19 removed legacy mmdet nodes entirely. Version 4.20.1 changed RegionalSampler parameter ordering. The template we build today may break on Impact Pack's next update.
-
-**Why it happens:** Impact Pack is one of the most actively developed custom node packs (3K+ stars, frequent updates). New features (wildcard support, DETAILER_PIPE changes) alter the node interface. The maintainer ships breaking changes with version bumps but users auto-update.
-
-**Consequences:**
-- Template FaceDetailer widget values shift positions after user updates Impact Pack
-- New required parameters appear that the template doesn't include
-- Template loads but produces wrong results because parameter positions shifted
-
-**Affects:** ComfyUI Impact Pack template.
+External users who encounter "comfy-tip" references will be confused — they cannot access that repo and the references add no value.
 
 **Prevention:**
-- Pin the Impact Pack version in template documentation ("Tested with Impact Pack v8.24+")
-- Use FaceDetailer rather than FaceDetailerPipe (the basic version changes less often)
-- Set ALL widget values explicitly -- don't rely on defaults that may change
-- Keep the FaceDetailer configuration simple: avoid advanced features like wildcard processing or detailer hooks that are more likely to change
-- After composing, test with the latest Impact Pack version to confirm compatibility
+1. Audit all files in the publishable tree for `comfy-tip` references
+2. Remove or replace with context-free descriptions ("adapted from existing registry client code")
+3. If `.planning/` is excluded (see Pitfall 2), this eliminates most references automatically
+4. CLAUDE.md and README.md need manual cleanup — 5 references total in the shipping files
 
-**Warning signs:**
-- FaceDetailer has more input slots than expected
-- Widget values array length doesn't match current node spec
-- "MASKS" vs "MASK" naming conflicts (changed in v4.12)
+**Detection:** `grep -r "comfy-tip" . --include="*.md" --include="*.py"` in the published tree.
 
-**Detection:** Compare widget_values array length against the MCP-fetched node spec. Mismatch = version drift.
+### Pitfall 6: pyproject.toml Missing Public Release Metadata
 
-**Confidence:** MEDIUM -- based on [Impact Pack changelog](https://github.com/ltdrdata/ComfyUI-Impact-Pack) and [community reports](https://github.com/ltdrdata/ComfyUI-Impact-Pack/issues/1080). Future breaking changes are unpredictable.
-
----
-
-### Pitfall 8: GGUF Node Category Is "bootleg" -- Confuses Template Organization
-
-**What goes wrong:** All ComfyUI-GGUF nodes register under the `"bootleg"` category in ComfyUI's node menu. This non-standard category name makes it harder for users to find the nodes and creates confusion about whether they're "official." In a template context, this also means the nodes won't appear under standard categories like "loaders" that users typically browse.
-
-**Why it happens:** The GGUF pack author chose "bootleg" as a self-deprecating category name during the WIP phase. The name has persisted through production use.
-
-**Affects:** ComfyUI-GGUF template.
+**What goes wrong:** The `pyproject.toml` is minimal — suitable for internal use but missing fields expected for a public project:
+- No `license` field
+- No `authors` field (or it will auto-populate from git which has the personal emails)
+- No `readme` field
+- No `urls` (homepage, repository, issues)
+- No `classifiers` for PyPI discoverability
+- No Python version `requires-python` upper bound (currently `>=3.12` which is fine)
+- Version is `0.1.0` — appropriate for pre-release but should be intentional
 
 **Prevention:**
-- In template notes, explain that GGUF nodes are under the "bootleg" category
-- Use exact node type names in documentation: `UnetLoaderGGUF`, `DualCLIPLoaderGGUF`
-- This is cosmetic -- doesn't affect functionality, but documentation should address it
+1. Add `license = {text = "Apache-2.0"}` (or chosen license)
+2. Add `authors = [{name = "Alvdansen Labs"}]` (org, not personal)
+3. Add `readme = "README.md"`
+4. Add `[project.urls]` section with repository link
+5. Consider whether to bump version to `1.0.0` or keep `0.x` to signal pre-release
 
-**Confidence:** HIGH -- verified from [GGUF documentation](https://deepwiki.com/city96/ComfyUI-GGUF).
+**Detection:** Read `pyproject.toml` and check for missing standard fields per Python Packaging User Guide.
 
----
+### Pitfall 7: Manim Animations Fail in Headless/Remote Rendering
 
-### Pitfall 9: FaceDetailer Thread Limiting After Execution
-
-**What goes wrong:** A documented issue reports that after running FaceDetailer, subsequent generation processes use fewer CPU cores (8 instead of all available) and take 2-3x longer. This persists until ComfyUI is restarted. On cloud, this means the template execution could degrade performance for subsequent workflows in the same session.
-
-**Why it happens:** FaceDetailer's internal detection process (YOLO inference) may set thread limits via PyTorch or OpenMP that persist in the process environment after the node completes.
-
-**Affects:** ComfyUI Impact Pack template, especially on cloud where sessions are shared.
-
-**Prevention:**
-- Document this as a known behavior in the template notes
-- On cloud: this is less of an issue since cloud sessions are typically isolated
-- Keep the FaceDetailer workflow simple to minimize the impact window
-- This is an upstream bug -- cannot be fixed in the template itself
-
-**Warning signs:**
-- Subsequent workflow runs are noticeably slower after running the FaceDetailer template
-- CPU utilization drops after FaceDetailer execution
-
-**Confidence:** MEDIUM -- based on [community report](https://github.com/ltdrdata/ComfyUI-Impact-Pack/issues/1097). May be fixed in newer versions.
-
----
-
-### Pitfall 10: GGUF Architecture Mismatch for SD1/SDXL Models
-
-**What goes wrong:** GGUF quantization works well with transformer/DiT architectures (Flux, SD3) but is problematic for conv2d architectures (SD1, SDXL). Conv2d models require `shape_fix=True` and higher quantization levels (Q8_0+). If the template defaults to a low quantization like Q4_K_S on an SDXL model, the output quality degrades significantly.
-
-**Why it happens:** "While quantization wasn't feasible for regular UNET models (conv2d), transformer/DiT models such as flux seem less affected by quantization." The GGUF pack supports both but the quality tradeoffs differ dramatically.
-
-**Affects:** ComfyUI-GGUF template.
+**What goes wrong:** Manim Community Edition has specific rendering pitfalls when running on remote servers (Hermes) or in CI:
+- **No display server:** Manim's preview mode (`-p` flag) tries to open a window, which fails headlessly. Must use `--disable_caching -qh` without `-p`
+- **LaTeX dependency:** Many Manim text features require a LaTeX installation (texlive). Remote servers may not have it installed. Missing LaTeX causes cryptic `subprocess.CalledProcessError` failures
+- **ffmpeg version mismatch:** Manim v0.19+ replaced external ffmpeg with `pyav`, but older Manim or mixed environments still need ffmpeg. Version mismatches cause encoding failures
+- **Font rendering differences:** Fonts available on macOS (SF Pro, Helvetica Neue) may not exist on Linux servers, causing text layout differences between local preview and remote render
+- **Caching stale scenes:** Manim aggressively caches rendered scenes. When iterating, old cached output plays instead of re-rendered content. Use `--disable_caching` or `manim render --flush_cache`
+- **OpenGL renderer issues:** Some Manim objects lack `should_render` attribute, causing `AttributeError` with the OpenGL renderer
 
 **Prevention:**
-- Target the template at Flux (transformer/DiT) architecture, not SDXL or SD1
-- Recommend Q4_K_S or Q5_K_S quantization for the Flux GGUF model
-- Document recommended quantization levels in the template notes
-- Use `UnetLoaderGGUF` for simple loading; only use `UnetLoaderGGUFAdvanced` if architecture override is needed
+1. Always render with `--disable_caching -qh --format mp4` for final output
+2. Use `-pql` (low quality preview) for iteration, high quality only for final render
+3. Pin Manim version in requirements: `manim==0.20.1` (current stable as of early 2026)
+4. Include a `render.sh` script that sets all flags correctly for headless rendering
+5. Test the exact render pipeline on the target server (Hermes) before creating all animations
+6. Stick to built-in fonts (e.g., Manim's default or explicitly bundled fonts) to avoid cross-platform differences
+7. Keep each scene under 60 seconds — longer scenes increase render time exponentially and make iteration painful
 
-**Warning signs:**
-- Template uses SDXL GGUF model at Q4 quantization -- output will be noticeably degraded
-- User reports "blurry" or "artifacted" results
+**Detection:** First render on Hermes fails. Check for LaTeX errors, missing font warnings, or stale cache output.
 
-**Confidence:** HIGH -- verified from [GGUF documentation](https://deepwiki.com/city96/ComfyUI-GGUF).
+### Pitfall 8: Presentation Materials Bloat the Code Repository
 
----
-
-### Pitfall 11: MelBandRoFormer Stereo/Mono Audio Mismatch
-
-**What goes wrong:** The MelBandRoFormer sampler expects stereo audio input. If the user provides mono audio, the node may fail or produce poor separation results. The node can resample to the correct sample rate, but mono-to-stereo conversion is not automatic.
-
-**Why it happens:** The underlying model was trained on stereo audio and expects 2-channel input. ComfyUI's `LoadAudio` node loads whatever format the file is in -- it doesn't convert mono to stereo.
-
-**Affects:** ComfyUI-MelBandRoFormer template.
+**What goes wrong:** Manim source files (.py), rendered videos (.mp4), PowerPoint files (.pptx), Excalidraw files (.excalidraw), and thumbnail images are committed alongside the code. This:
+- Bloats the repo size (a single 1080p 2-minute animation is 50-200 MB)
+- Makes `git clone` slow for users who just want the code
+- Binary files in git don't diff well — every edit creates a full copy in history
+- Comfy-Org may want the code but not the presentation materials
 
 **Prevention:**
-- Add a Note node: "Input audio must be stereo. Mono audio may produce errors or poor results."
-- In the template description, specify "stereo audio input required"
-- Consider whether a mono-to-stereo conversion node should be part of the template pipeline (if one exists as a core node)
+1. Store presentation materials in a SEPARATE repo or directory that is git-ignored
+2. Option A (recommended): Create `alvdansen-labs/comfyui-template-agent-presentation` as a separate repo
+3. Option B: Use Git LFS for binary assets (videos, images, pptx) if they must live in the same repo
+4. Option C: Host rendered videos on YouTube/Vimeo and link from README — no binary in git
+5. Keep Manim SOURCE files (.py) in the code repo (they're small text files) but .gitignore the `media/` output directory
+6. Excalidraw `.excalidraw` files are JSON and small — these can live in the repo
+7. Add to `.gitignore`: `media/`, `*.mp4`, `*.mov`, `*.pptx`, `*.key`
 
-**Warning signs:**
-- Template works with test audio but fails with user-provided mono files
-- Separation quality is unexpectedly poor
+**Detection:** `git ls-files | grep -E '\.(mp4|mov|pptx|png|jpg)$'` — any matches indicate binary bloat risk.
 
-**Confidence:** MEDIUM -- based on [MelBandRoFormer documentation](https://www.runcomfy.com/comfyui-nodes/ComfyUI-MelBandRoFormer/mel-band-ro-former-sampler). Exact mono handling behavior needs cloud testing.
+### Pitfall 9: README Not Rewritten for External Audience
+
+**What goes wrong:** The current README is written for internal use and assumes context:
+- `git clone <repo-url>` has a placeholder URL
+- References comfy-tip naming conflict (external users don't have comfy-tip)
+- "Cloud vs Local" section assumes knowledge of Comfy Cloud MCP
+- No badges (license, Python version, tests passing)
+- No screenshots or GIF demos showing what the tool actually does
+- No "Why this exists" section for newcomers
+- Architecture section is a bare bullet list
+- "Contributing" section is a single paragraph
+
+**Prevention:**
+1. Rewrite README for someone who has never heard of this project
+2. Add: project logo/banner, badges, "What is this?", "Why?", screenshots/GIF demo, clear prerequisites
+3. Remove: comfy-tip references, internal team assumptions
+4. Add example output (what does a completed template look like?)
+5. Consider a "Quick Start" that gets someone from clone to first template in under 5 minutes
+
+**Detection:** Have someone unfamiliar with the project read the README and note every point of confusion.
+
+### Pitfall 10: Git Remote Points to Wrong Org
+
+**What goes wrong:** The current remote is `https://github.com/aramintak/comfyui-template-agent.git`. Publishing requires moving to the Alvdansen Labs org. If the transfer or fork isn't handled correctly:
+- Old links break (GitHub redirects help but aren't permanent)
+- CI/CD pipelines reference the old URL
+- Contributors push to the wrong remote
+- The `aramintak` personal account namespace leaks the individual developer identity when the goal is an org-level publication
+
+**Prevention:**
+1. Create fresh repo under `alvdansen-labs` org (preferred over transfer if using fresh history)
+2. If transferring: GitHub handles redirects from old URL, but update all references in README, CLAUDE.md, pyproject.toml
+3. Update the origin remote: `git remote set-url origin https://github.com/alvdansen-labs/comfyui-template-agent.git`
+4. Verify no hardcoded references to `aramintak` or `timm156` in any published files
+
+**Detection:** `git remote -v` should show the Alvdansen Labs org URL after publishing.
 
 ---
 
 ## Minor Pitfalls
 
-### Pitfall 12: Florence2 Transformers Version Pinning
+### Pitfall 11: .venv Directory Not in .gitignore Properly
 
-**What goes wrong:** ComfyUI-Florence2 requires `transformers >= 4.39.0` but explicitly excludes version `4.50.*` due to compatibility issues. If the cloud environment has an incompatible transformers version, the Florence2 node fails to load.
+**What goes wrong:** The `.venv/` directory appears as untracked in git status. While `.gitignore` does not list `.venv/`, the directory hasn't been committed. However, the risk is that someone accidentally commits it, adding hundreds of MB of Python packages to the repo.
 
-**Affects:** ComfyUI-Florence2 template (cloud only).
+**Prevention:** Add `.venv/` to `.gitignore` immediately. Also add `*.egg-info/` (already present) and `comfyui_template_agent.egg-info/` (currently a top-level directory that appears untracked).
 
-**Prevention:** This is a cloud infrastructure concern, not a template authoring issue. Document the version requirement. If cloud testing fails, check transformers version first.
+**Detection:** `git status` shows `.venv/` as untracked.
 
-**Confidence:** HIGH -- verified from [pyproject.toml](https://github.com/kijai/ComfyUI-Florence2/blob/main/pyproject.toml).
+### Pitfall 12: COMPAT-FIX.md and Build Scripts Are Internal Artifacts
 
----
-
-### Pitfall 13: GGUF Loader Not Discoverable via Standard Search
-
-**What goes wrong:** When using the MCP `search_nodes` to find GGUF loaders, the "bootleg" category and non-standard naming may cause the nodes to not surface in standard searches. The node type name `UnetLoaderGGUF` is close to the core `UNETLoader` but they are fundamentally different.
-
-**Affects:** ComfyUI-GGUF template (composition phase).
+**What goes wrong:** `COMPAT-FIX.md` is an untracked file that appears to be a debugging/fix note. The `templates/*/build.py` files are template generation scripts that may reference internal paths or assumptions. These internal artifacts ship without context.
 
 **Prevention:**
-- Use exact node type names when searching: `UnetLoaderGGUF`, `DualCLIPLoaderGGUF`, `TripleCLIPLoaderGGUF`, `CLIPLoaderGGUF`, `UnetLoaderGGUFAdvanced`
-- Do not confuse core `UNETLoader` with `UnetLoaderGGUF` -- they have different model directory expectations
-- Note the casing difference: core is `UNETLoader` (all caps UNET), GGUF is `UnetLoaderGGUF` (mixed case)
+1. Review `COMPAT-FIX.md` — if it's a debugging note, delete it before publishing
+2. Review each `build.py` — ensure they work standalone without internal dependencies
+3. Consider whether templates should ship with the agent toolkit or be a separate deliverable
 
-**Confidence:** MEDIUM -- based on naming analysis; actual MCP search behavior needs testing.
+**Detection:** `git status` shows these as untracked new files.
 
----
+### Pitfall 13: Manim Animation Pacing Mismatched to Audience
 
-### Pitfall 14: Florence2Run Has 4 Outputs But Templates Usually Need 1-2
-
-**What goes wrong:** `Florence2Run` returns a 4-tuple: `(IMAGE, MASK, STRING, JSON)`. The specific outputs populated depend on the task:
-- Captioning tasks: only STRING output is useful
-- Segmentation tasks: IMAGE and MASK outputs are useful
-- OCR: STRING output
-- Grounding: IMAGE output with bounding boxes drawn
-
-Template creators who connect all 4 outputs create confusing workflows with dangling connections for outputs that are empty for the selected task.
-
-**Affects:** ComfyUI-Florence2 template.
+**What goes wrong:** Technical demo animations built by developers tend to move too fast. The developer knows the content and paces it for themselves, not for a first-time viewer. Common mistakes:
+- Transitions happen in 0.3s when viewers need 1-2s to process
+- Text appears and disappears before it can be read
+- No pauses between conceptual sections
+- Code examples scroll past without highlighting the important parts
+- No visual hierarchy — everything animates with equal emphasis
 
 **Prevention:**
-- Only connect the outputs relevant to the chosen task
-- Add a Note node explaining which outputs are active for the task
-- For a captioning template: connect STRING output to a display/note
-- For a segmentation template: connect IMAGE and MASK outputs
+1. Follow the 3-second rule: every new piece of information stays visible for at least 3 seconds
+2. Use `self.wait(2)` between major sections in Manim
+3. Use progressive reveal (FadeIn/Write one element at a time, not all at once)
+4. Get someone unfamiliar with the project to watch at 1x speed and note confusion points
+5. Target 3-5 minutes per video segment — shorter is better for async viewing
+6. Build a scene outline BEFORE coding — one claim per scene, 3-6 scenes max per video
 
-**Confidence:** HIGH -- verified from [Florence2 node specs](https://deepwiki.com/kijai/ComfyUI-Florence2/4.2-florence2run-node).
+**Detection:** Watch the rendered animation at 1x speed without skipping. If you're impatient, the pacing is correct for external viewers.
 
----
+### Pitfall 14: Comfy-Org Absorption Expectations Misaligned
 
-### Pitfall 15: Impact Pack FaceDetailer SAM Model Is Optional But Improves Quality
-
-**What goes wrong:** FaceDetailer has an optional `sam_model_opt` input. Without SAM, FaceDetailer uses only the BBOX detector's rectangular region -- the enhanced face area has hard rectangular boundaries that can show visible seams. With SAM, the face is precisely segmented before enhancement, producing much cleaner results. Templates that skip the SAM model produce noticeably worse output.
-
-**Affects:** ComfyUI Impact Pack template.
+**What goes wrong:** The deliverable is prepared for Comfy-Org to "stress-test and absorb" but the handoff expectations are undefined:
+- Does "absorb" mean they fork it, or adopt it into their org?
+- Do they want the Python source, just the skills, or the full toolkit?
+- Will they run it against their own workflow_templates CI?
+- Is there an expected interface contract (API stability, CLI signatures)?
+- Are there code style or testing requirements from Comfy-Org?
 
 **Prevention:**
-- Include SAM model loading (`SAMLoader`) in the template for best results
-- Use `sam_vit_b_01ec64.pth` (smallest SAM variant, ~375MB) for the template default
-- SAM model path: `ComfyUI/models/sams/sam_vit_b_01ec64.pth`
-- Embed the SAM model in template properties for auto-download (it's `.pth` format -- check if this is considered "safe" by template system; `.pth` may also be flagged as unsafe like `.gguf`)
+1. Clarify with Comfy-Org contacts BEFORE polishing: what exactly do they want to receive?
+2. Prepare the repo to be self-contained — it should work without any of your local setup
+3. Include a `CONTRIBUTING.md` that documents how to extend the toolkit
+4. Add a `ARCHITECTURE.md` or `docs/design.md` explaining the module structure and extension points
+5. Make the test suite comprehensive enough that Comfy-Org can run `pytest` and verify nothing is broken
+6. Tag a release (e.g., `v3.0.0`) so there's a clear "this is what we delivered" checkpoint
 
-**Warning signs:**
-- Face enhancement has visible rectangular seam borders
-- Quality significantly worse than tutorials that include SAM
+**Detection:** Ask: "If I handed this repo URL to a Comfy-Org engineer with zero context, could they clone it, run setup, and use all 6 skills within 30 minutes?"
 
-**Confidence:** MEDIUM-HIGH -- based on [FaceDetailer documentation](https://www.runcomfy.com/comfyui-nodes/ComfyUI-Impact-Pack/FaceDetailer) and [community guides](https://mybyways.com/blog/improving-faces-with-impact-pack-detailers).
+### Pitfall 15: CLAUDE.md Contains Internal GSD Workflow Instructions
 
----
+**What goes wrong:** The project's `CLAUDE.md` contains GSD Workflow Enforcement rules ("Before using Edit, Write, or other file-changing tools, start work through a GSD command..."). This is an internal development workflow that:
+- Confuses external contributors who don't have GSD installed
+- References `/gsd:quick`, `/gsd:debug`, `/gsd:execute-phase` which are not part of this toolkit
+- The "Developer Profile" section says "not yet configured"
+- Template-specific node documentation (Florence2, GGUF, Impact Pack, MelBandRoFormer) is embedded in CLAUDE.md — useful during development but overwhelming for external users
 
-## Validation Rule Conflicts
+**Prevention:**
+1. Strip GSD workflow enforcement section from public CLAUDE.md
+2. Strip or relocate the "Developer Profile" placeholder
+3. Move template-specific node documentation to `docs/templates/` or the template directories themselves
+4. Keep CLAUDE.md focused on: what the project is, conventions for contributing, how skills work
+5. Consider a separate `CLAUDE.md.internal` for GSD workflow rules (added to `.gitignore`)
 
-| Template | Validation Rule | Expected Behavior | Actual Behavior | Fix |
-|----------|----------------|-------------------|-----------------|-----|
-| ALL 4 | `core_node_preference` | Flags custom nodes as warning | Correctly flags all pack-specific nodes | Suppress warning severity for templates intentionally showcasing custom node packs |
-| MelBandRoFormer | `core_node_preference` | Should NOT flag `LoadAudio`/`SaveAudio` | WILL flag them as custom (stale core list) | Update `core_nodes.json` with audio nodes |
-| ALL 4 | `cloud_compatible` | Info reminder | Correct, but all 4 need actual cloud testing | No code fix -- operational requirement |
-| Impact Pack | `check_core_node_preference` | Flags FaceDetailer, UltralyticsDetectorProvider | Correct behavior | Expected -- these are intentionally custom |
-| GGUF | metadata `_detect_models` | Should detect GGUF model file | May NOT detect `.gguf` extension | `_detect_models` checks for `.safetensors`, `.ckpt`, `.pt`, `.pth`, `.bin` but NOT `.gguf` -- needs extension |
-
----
-
-## Model Size and Download Concerns
-
-| Template | Model(s) | Size | Format | Auto-Download? | Directory |
-|----------|----------|------|--------|----------------|-----------|
-| Florence2 | florence-2-base-ft | ~1GB | HF auto-download | Node handles it (bypasses template system) | `models/LLM` |
-| Florence2 | florence-2-large-ft | ~1.5GB | HF auto-download | Node handles it (bypasses template system) | `models/LLM` |
-| GGUF | flux1-dev-Q4_K_S.gguf | ~6GB | `.gguf` | NO -- unsafe format, blocked | `models/unet` |
-| GGUF | T5 text encoder (GGUF) | ~5GB | `.gguf` | NO -- unsafe format, blocked | `models/clip` |
-| GGUF | CLIP-L (safetensors) | ~250MB | `.safetensors` | YES | `models/clip` |
-| Impact Pack | face_yolov8m.pt | ~6MB | `.pt` | Possibly -- `.pt` may be flagged unsafe | `models/ultralytics/bbox` |
-| Impact Pack | sam_vit_b_01ec64.pth | ~375MB | `.pth` | Possibly -- `.pth` may be flagged unsafe | `models/sams` |
-| Impact Pack | SD/SDXL checkpoint | ~2-7GB | `.safetensors` | YES | `models/checkpoints` |
-| MelBandRoFormer | MelBandRoformer_fp16.safetensors | ~456MB | `.safetensors` | YES | `models/diffusion_models` |
-
-**Key insight:** Only MelBandRoFormer and Impact Pack's checkpoint have fully auto-downloadable models via the template system. Florence2 handles its own downloads. GGUF is entirely blocked. Impact Pack's detection models (`.pt`, `.pth`) need testing to confirm template embedding support.
-
----
-
-## Cloud Compatibility Matrix
-
-| Template | Cloud Risk | Primary Concern | Mitigation |
-|----------|-----------|-----------------|------------|
-| Florence2 | MEDIUM | First-run model download (1-1.5GB) adds to cold start time | Use `base-ft` variant, `fp16` precision, document wait time |
-| GGUF | HIGH | `.gguf` models can't be auto-provisioned; manual upload required | Document manual model placement, or investigate if cloud pre-caches popular GGUF models |
-| Impact Pack | MEDIUM | Subpack must be installed; YOLO model must be in correct subdirectory | Ensure both packs in registry; embed model if `.pt` embedding works |
-| MelBandRoFormer | LOW | Model is `.safetensors`, auto-downloadable; audio processing is lightweight | Straightforward cloud deployment; document stereo input requirement |
+**Detection:** Read CLAUDE.md as an external contributor — any mention of GSD, `/gsd:*`, or developer profiles is internal-only.
 
 ---
 
 ## Phase-Specific Warnings
 
-| Phase/Task | Likely Pitfall | Mitigation | Affected Template |
-|------------|---------------|------------|-------------------|
-| Pre-composition setup | Stale core_nodes.json missing audio nodes | Update core list before any template work | MelBandRoFormer |
-| Pre-composition setup | `_detect_models` missing `.gguf` extension | Add `.gguf` to model extension list in `metadata.py` | GGUF |
-| Composition | GGUF text encoder selection (T5 vs CLIP vs Dual) | Use `DualCLIPLoaderGGUF` for Flux (needs T5 + CLIP-L) | GGUF |
-| Composition | Florence2 task selection affects which outputs to wire | Match outputs to task type; don't wire unused outputs | Florence2 |
-| Composition | FaceDetailer has 15+ inputs -- easy to miss required ones | Use MCP node spec to enumerate all required inputs | Impact Pack |
-| Validation | All templates trigger `core_node_preference` warnings | Expected -- suppress or lower severity for intentional custom node templates | ALL |
-| Validation | Impact Pack template only lists 1 of 2 required packs | Explicitly check for Subpack requirement | Impact Pack |
-| Model embedding | GGUF format blocked by template system | Document manual setup; explore partial safetensors embedding | GGUF |
-| Model embedding | Impact Pack `.pt`/`.pth` models may be blocked | Test template embedding with `.pt` format; fallback to manual docs | Impact Pack |
-| Documentation | GGUF needs extra setup instructions vs other templates | More detailed Notion submission with model installation guide | GGUF |
-| Cloud testing | Florence2 cold start downloads are slow | Budget extra time; use smallest viable model variant | Florence2 |
-| Cloud testing | GGUF models must be manually provisioned | Test with pre-placed models; document for reviewers | GGUF |
+| Phase Topic | Likely Pitfall | Mitigation |
+|-------------|---------------|------------|
+| Git history cleanup | Rewriting history breaks existing forks/clones | Use fresh repo approach — no external consumers yet, so no breakage |
+| Secret scanning | False sense of security from scanning HEAD only | Scan full history with `gitleaks detect --source . --verbose` |
+| License selection | Choosing incompatible license for Comfy-Org absorption | Verify Comfy-Org's preferred license; Apache 2.0 is safe default |
+| .planning cleanup | Accidentally deleting files still needed for v3.0 execution | Complete v3.0 BEFORE cleaning; archive .planning/ locally |
+| Skill installation docs | Assuming Claude Code skill format is stable | Pin to current skill spec; note that `commands/` and `skills/` merged |
+| Manim rendering | Local renders look good but remote (Hermes) renders fail | Run ONE test render on Hermes before building all animations |
+| Manim asset sizing | Rendered videos exceed GitHub's 100 MB file limit | Use separate repo or Git LFS for video assets |
+| PowerPoint creation | Slides contain too much text, not enough visuals | Follow 6-word-per-slide rule; let Manim videos carry the detail |
+| Excalidraw diagrams | Architecture diagrams don't match actual code structure | Generate diagrams FROM the code (module imports, skill graph) not from memory |
+| README rewrite | Over-engineering the README with badges and shields | Focus on "clone, setup, use" flow; badges are polish, not substance |
+| Org transfer | GitHub repo transfer vs. fresh push confusion | Fresh push to new org is cleaner if history is being reset anyway |
+| Comfy-Org handoff | Delivering without a clear "what to evaluate" guide | Include a HANDOFF.md or EVALUATION.md with specific test scenarios |
 
 ---
 
-## Code Changes Required Before Template Composition
+## Pitfall Dependency Chain
 
-These are NOT template issues -- they're tooling gaps in the existing codebase that will cause problems for this milestone.
+Some pitfalls must be resolved in order:
 
-1. **Update `data/core_nodes.json`:** Add `LoadAudio`, `SaveAudio`, `EmptyLatentAudio`, `StableAudioSampler`, `StableAudioConditioning`, and any other audio-related core nodes. Without this, MelBandRoFormer template validation will produce false positives.
+```
+Pitfall 3 (License) --> Must be decided BEFORE any public commit
+Pitfall 1 (Git History) --> Must be resolved BEFORE Pitfall 10 (Remote/Org)
+Pitfall 2 (.planning/) --> Should be resolved DURING Pitfall 1 (part of history cleanup)
+Pitfall 5 (comfy-tip refs) --> Should be resolved DURING Pitfall 9 (README rewrite)
+Pitfall 15 (CLAUDE.md) --> Should be resolved DURING Pitfall 9 (README rewrite)
+Pitfall 7 (Manim remote) --> Must be tested BEFORE building all animations (Pitfall 8)
+Pitfall 8 (Presentation repo) --> Repo structure decided BEFORE creating any videos
+```
 
-2. **Extend `_detect_models` in `src/document/metadata.py`:** Add `.gguf` to the `model_extensions` tuple. Currently: `(".safetensors", ".ckpt", ".pt", ".pth", ".bin")`. Without this, GGUF template metadata won't list the GGUF model files.
-
-3. **Add audio output node to `_OUTPUT_TYPES` in `metadata.py`:** `SaveAudio` is already handled by `_detect_media_type`, but `_OUTPUT_TYPES` dict (used for IO spec extraction) doesn't include it. Add `"SaveAudio": "audio"` and `"LoadAudio": "audio"` to `_INPUT_TYPES`.
-
-4. **Consider adding `_INPUT_TYPES` entry for Florence2 loader:** `DownloadAndLoadFlorence2Model` and `Florence2ModelLoader` are model loaders but don't match the `"Load" in node_type` heuristic in `_detect_models` because they use HuggingFace repo names, not file paths.
+Suggested resolution order:
+1. License decision (Pitfall 3)
+2. Manim test render on Hermes (Pitfall 7)
+3. Presentation repo structure decision (Pitfall 8)
+4. Content cleanup: CLAUDE.md, README, comfy-tip refs (Pitfalls 5, 9, 15)
+5. .planning/ and internal artifact cleanup (Pitfalls 2, 6, 11, 12)
+6. Git history decision and execution (Pitfall 1)
+7. Org creation and push (Pitfall 10)
+8. Comfy-Org handoff preparation (Pitfall 14)
 
 ---
 
 ## Sources
 
-- [ComfyUI Template System Docs](https://docs.comfy.org/interface/features/template) -- Model embedding rules, unsafe format policy (HIGH confidence)
-- [ComfyUI-GGUF GitHub](https://github.com/city96/ComfyUI-GGUF) -- Node types, architecture support, known issues (HIGH confidence)
-- [ComfyUI-GGUF DeepWiki](https://deepwiki.com/city96/ComfyUI-GGUF) -- Quantization levels, VRAM savings (HIGH confidence)
-- [ComfyUI-Florence2 GitHub](https://github.com/kijai/ComfyUI-Florence2) -- Node types, model requirements (HIGH confidence)
-- [Florence2 Memory Management](https://deepwiki.com/kijai/ComfyUI-Florence2/7.1-memory-management) -- VRAM by model size (HIGH confidence)
-- [Florence2 Node Analysis](https://deepwiki.com/kijai/ComfyUI-Florence2/4-florence2-nodes) -- Task types, input constraints (HIGH confidence)
-- [ComfyUI-Impact-Pack GitHub](https://github.com/ltdrdata/ComfyUI-Impact-Pack) -- FaceDetailer, breaking changes (HIGH confidence)
-- [ComfyUI-Impact-Subpack GitHub](https://github.com/ltdrdata/ComfyUI-Impact-Subpack) -- UltralyticsDetectorProvider location (HIGH confidence)
-- [FaceDetailer Documentation](https://www.runcomfy.com/comfyui-nodes/ComfyUI-Impact-Pack/FaceDetailer) -- Required inputs, SAM model (MEDIUM-HIGH confidence)
-- [ComfyUI-MelBandRoFormer GitHub](https://github.com/kijai/ComfyUI-MelBandRoFormer) -- Node types, model path (HIGH confidence)
-- [MelBandRoFormer HuggingFace](https://huggingface.co/Kijai/MelBandRoFormer_comfy) -- Model files, sizes (HIGH confidence)
-- [ComfyUI Core Audio Nodes](https://github.com/comfyanonymous/ComfyUI/blob/master/comfy_extras/nodes_audio.py) -- LoadAudio/SaveAudio are core (HIGH confidence)
-- [Impact Pack Thread Issue](https://github.com/ltdrdata/ComfyUI-Impact-Pack/issues/1097) -- FaceDetailer thread limiting (MEDIUM confidence)
-- [ComfyUI Workflow Templates README](https://github.com/Comfy-Org/workflow_templates/blob/main/README.md) -- Submission requirements, index.json schema (HIGH confidence)
+### Git History & Secrets
+- [GitHub Secret Scanning Basics](https://github.com/orgs/community/discussions/149172) — GitHub's built-in scanning capabilities (HIGH confidence)
+- [Remove Secrets from Git History (Microsoft)](https://techcommunity.microsoft.com/blog/azureinfrastructureblog/how-to-safely-remove-secrets-from-your-git-history-the-right-way/4464722) — git filter-repo methodology (HIGH confidence)
+- [Gitleaks GitHub](https://github.com/gitleaks/gitleaks) — Pre-commit secret scanning tool (HIGH confidence)
+- [git-filter-repo](https://github.com/newren/git-filter-repo) — Official replacement for git-filter-branch (HIGH confidence)
 
----
-*Pitfalls research for: v2.0 Template Batch -- 4 node pack templates*
-*Researched: 2026-03-25*
+### Licensing
+- [Apache vs MIT License (SOOS)](https://soos.io/apache-vs-mit-license) — Comparison and patent implications (MEDIUM confidence)
+- [Choose a License](https://choosealicense.com/licenses/) — License selection guide (HIGH confidence)
+- [Python Packaging Licensing Examples](https://packaging.python.org/en/latest/guides/licensing-examples-and-user-scenarios/) — pyproject.toml license field (HIGH confidence)
+
+### Claude Code Skills
+- [Claude Code Skills Documentation](https://code.claude.com/docs/en/skills) — Official skill format, installation, distribution (HIGH confidence)
+- [Agent Skills Standard](https://agentskills.io) — Cross-platform skill specification (HIGH confidence)
+- [Claude Skills Guide 2026](https://anandbg.com/blog/claude-skills-comprehensive-guide-2026) — Practical distribution patterns (MEDIUM confidence)
+
+### Manim
+- [Manim Community Docs](https://docs.manim.community/en/stable/) — Official documentation (HIGH confidence)
+- [Manim Skill for Hermes Agent](https://github.com/NousResearch/hermes-agent/tree/main/skills/creative/manim-video) — Hermes rendering pipeline (MEDIUM confidence)
+- [Manim Rendering Issues #4365](https://github.com/ManimCommunity/manim/issues/4365) — Known rendering failures (HIGH confidence)
+- [Manim Best Practices (adithya-s-k)](https://github.com/adithya-s-k/manim_skill/blob/main/skills/manimce-best-practices/rules/timing.md) — Animation timing rules (MEDIUM confidence)
+
+### GitHub Repository Transfer
+- [GitHub: Transferring a Repository](https://docs.github.com/en/repositories/creating-and-managing-repositories/transferring-a-repository) — Official transfer docs (HIGH confidence)
+
+### Python Packaging
+- [Editable Installs (setuptools)](https://setuptools.pypa.io/en/latest/userguide/development_mode.html) — Current editable install behavior (HIGH confidence)
+- [pip install documentation](https://pip.pypa.io/en/stable/cli/pip_install/) — Cross-platform installation (HIGH confidence)
