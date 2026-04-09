@@ -16,11 +16,11 @@ Requirements for the Publish & Present milestone. Each maps to roadmap phases.
 
 ### Content & Documentation
 
-- [ ] **CONTENT-01**: README has hero section with banner, shields.io badges, and one-line value prop
-- [ ] **CONTENT-02**: README has quick start section (clone → setup → first command) under 60 seconds
-- [ ] **CONTENT-03**: README has embedded architecture diagram (from Excalidraw SVG/PNG)
-- [ ] **CONTENT-04**: README has quantified results section (4 templates, 42 requirements, node pack downloads)
-- [ ] **CONTENT-05**: CLAUDE.md trimmed of GSD enforcement, developer profile placeholder, and template node documentation
+- [x] **CONTENT-01**: README has hero section with banner, shields.io badges, and one-line value prop
+- [x] **CONTENT-02**: README has quick start section (clone → setup → first command) under 60 seconds
+- [x] **CONTENT-03**: README has embedded architecture diagram (from Excalidraw SVG/PNG)
+- [x] **CONTENT-04**: README has quantified results section (4 templates, 42 requirements, node pack downloads)
+- [x] **CONTENT-05**: CLAUDE.md trimmed of GSD enforcement, developer profile placeholder, and template node documentation
 - [ ] **CONTENT-06**: CONTRIBUTING.md with dev setup, code style (pydantic, httpx, ruff), PR process, skill authoring guide
 - [ ] **CONTENT-07**: AGENTS.md following 2026 Linux Foundation standard
 - [ ] **CONTENT-08**: All 6 SKILL.md files standardized with trigger, capabilities, example sessions, gotchas
@@ -87,11 +87,11 @@ Which phases cover which requirements. Updated during roadmap creation.
 | REPO-02 | Phase 12 | Pending |
 | REPO-03 | Phase 12 | Pending |
 | REPO-04 | Phase 12 | Pending |
-| CONTENT-01 | Phase 13 | Pending |
-| CONTENT-02 | Phase 13 | Pending |
-| CONTENT-03 | Phase 13 | Pending |
-| CONTENT-04 | Phase 13 | Pending |
-| CONTENT-05 | Phase 13 | Pending |
+| CONTENT-01 | Phase 13 | Complete |
+| CONTENT-02 | Phase 13 | Complete |
+| CONTENT-03 | Phase 13 | Complete |
+| CONTENT-04 | Phase 13 | Complete |
+| CONTENT-05 | Phase 13 | Complete |
 | CONTENT-06 | Phase 13 | Pending |
 | CONTENT-07 | Phase 13 | Pending |
 | CONTENT-08 | Phase 13 | Pending |
