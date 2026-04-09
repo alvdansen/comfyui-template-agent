@@ -54,7 +54,10 @@ Archive: [v2.0-ROADMAP.md](milestones/v2.0-ROADMAP.md) | [v2.0-REQUIREMENTS.md](
   2. pyproject.toml contains version 3.0.0, author, license, repository URL, classifiers, and keywords
   3. .gitignore covers .venv/, *.egg-info/, __pycache__/, .planning/, and no tracked files match those patterns
   4. CHANGELOG.md documents v1.0 (6 skills, 14 plans), v2.0 (4 templates), and v3.0 (publish) milestones with dates
-**Plans**: TBD
+**Plans:** 2 plans
+Plans:
+- [ ] 12-01-PLAN.md -- LICENSE, pyproject.toml metadata, and .gitignore
+- [ ] 12-02-PLAN.md -- Retroactive CHANGELOG.md with v1.0, v2.0, v3.0 entries
 
 ### Phase 13: Content Cleanup
 **Goal**: All documentation is written for an external engineering audience, not internal development
@@ -109,7 +112,7 @@ Phases 12 through 16, with Phase 14 eligible to run in parallel with Phase 13 (d
 
 | Phase | Milestone | Plans Complete | Status | Completed |
 |-------|-----------|----------------|--------|-----------|
-| 12. Repo Foundation | v3.0 | 0/TBD | Not started | - |
+| 12. Repo Foundation | v3.0 | 0/2 | Planned | - |
 | 13. Content Cleanup | v3.0 | 0/TBD | Not started | - |
 | 14. Presentation Materials | v3.0 | 0/TBD | Not started | - |
 | 15. CI/CD & Final Polish | v3.0 | 0/TBD | Not started | - |
