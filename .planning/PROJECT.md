@@ -48,6 +48,25 @@ Template creators can go from "what should we build next?" to "here's a cloud-te
 - ✓ Each template passes validation, includes index.json metadata and Notion submission docs — Phases 8-11
 - ✓ Tooling fixes: core_nodes.json audio gaps and .gguf model detection — Phase 7
 
+## Current Milestone: v3.0 — Publish & Present
+
+**Goal:** Polish the template agent into a production-ready deliverable under Alvdansen Labs, with async presentation materials powered by Hermes, aligned with the Comfy Agent Research Phase (Apr 7-17).
+
+### Active
+
+- [ ] Clean repo structure, README, install guide for public release
+- [ ] Package as polished deliverable for Comfy devs to stress-test and absorb into Comfy-Org
+- [ ] Manim animations: workflow pipeline visualizations (via Hermes)
+- [ ] PowerPoint deck: architecture, metrics, demo flow
+- [ ] Excalidraw: system architecture diagrams (via Hermes)
+- [ ] Recorded async demo walkthrough
+- [ ] Publish to Alvdansen Labs GitHub org
+
+### Out of Scope (v3.0)
+
+- Template PR submissions to workflow_templates repo (separate effort)
+- Live roundtable presentation (async delivery instead)
+
 ## Current State
 
 **Shipped:** v2.0 (2026-04-09)
@@ -108,4 +127,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-04-09 after v2.0 milestone completion*
+*Last updated: 2026-04-08 — v3.0 milestone initiated*

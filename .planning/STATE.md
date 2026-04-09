@@ -1,36 +1,36 @@
 ---
 gsd_state_version: 1.0
-milestone: v2.0
-milestone_name: Template Batch -- Trending Node Coverage
-status: completed
-stopped_at: Milestone v2.0 archived
-last_updated: "2026-04-09"
-last_activity: 2026-04-09
+milestone: v3.0
+milestone_name: Publish & Present
+status: planning
+stopped_at: Milestone initiated — awaiting research and requirements
+last_updated: "2026-04-08"
+last_activity: 2026-04-08
 progress:
-  total_phases: 5
-  completed_phases: 5
-  total_plans: 5
-  completed_plans: 5
-  percent: 100
+  total_phases: 0
+  completed_phases: 0
+  total_plans: 0
+  completed_plans: 0
+  percent: 0
 ---
 
 # Project State
 
 ## Project Reference
 
-See: .planning/PROJECT.md (updated 2026-04-09)
+See: .planning/PROJECT.md (updated 2026-04-08)
 
 **Core value:** Template creators can go from "what should we build next?" to "here's a cloud-tested workflow with submission docs" in a single guided session
-**Current focus:** Milestone v2.0 complete and archived — ready for next milestone
+**Current focus:** v3.0 — Polish repo for Alvdansen Labs public release + async presentation materials via Hermes
 
 ## Current Position
 
-Phase: All complete (v1.0: phases 1-6, v2.0: phases 7-11)
-Plan: All complete
-Status: Between milestones — v2.0 shipped 2026-04-09
-Last activity: 2026-04-09
+Phase: Pre-planning (research + requirements)
+Plan: None yet
+Status: Planning v3.0
+Last activity: 2026-04-08
 
-Progress: [####################] 100% (v1.0 + v2.0 complete)
+Progress: [____________________] 0%
 
 ## Performance Metrics
 
@@ -62,10 +62,12 @@ None.
 
 ### Blockers/Concerns
 
-None — all v2.0 concerns resolved during execution.
+- Hermes server availability required for Manim/Excalidraw/PowerPoint generation
+- Alvdansen Labs GitHub org access needed for publishing
+- Research Phase deadline: Apr 17
 
 ## Session Continuity
 
-Last session: 2026-04-09
-Stopped at: Milestone v2.0 archived
+Last session: 2026-04-08
+Stopped at: Milestone initiated — awaiting research and requirements
 Resume file: None
