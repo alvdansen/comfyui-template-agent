@@ -1,0 +1,47 @@
+{
+  "name": "florence2-vision-ai",
+  "title": "Florence2 Vision AI",
+  "description": "Demonstrates Florence2 multi-task vision AI using the ComfyUI-Florence2 node pack by kijai. Supports detailed image captioning, OCR, object detection, and grounding. This template uses the more_detailed_caption task to generate rich image descriptions.",
+  "mediaType": "image",
+  "mediaSubtype": "",
+  "tags": [
+    "vision",
+    "captioning",
+    "florence2",
+    "image-to-text",
+    "AI",
+    "multi-task"
+  ],
+  "models": [
+    "microsoft/Florence-2-large-ft"
+  ],
+  "requiresCustomNodes": [
+    "comfyui-florence2"
+  ],
+  "date": "2026-03-25",
+  "openSource": true,
+  "size": 0,
+  "vram": 8,
+  "usage": 0,
+  "searchRank": 0,
+  "username": "kijai",
+  "io": {
+    "inputs": [
+      {
+        "nodeId": 1,
+        "nodeType": "LoadImage",
+        "fieldName": "example",
+        "mediaType": "image"
+      }
+    ],
+    "outputs": [
+      {
+        "nodeId": 4,
+        "nodeType": "PreviewImage",
+        "fieldName": "",
+        "mediaType": "image"
+      }
+    ]
+  },
+  "thumbnail": []
+}

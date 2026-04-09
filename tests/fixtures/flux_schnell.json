@@ -1,0 +1,114 @@
+{
+  "last_node_id": 7,
+  "last_link_id": 7,
+  "nodes": [
+    {
+      "id": 1,
+      "type": "CheckpointLoaderSimple",
+      "pos": [100, 200],
+      "size": [315, 98],
+      "properties": {},
+      "widgets_values": ["flux1-schnell.safetensors"],
+      "inputs": [],
+      "outputs": [
+        {"name": "MODEL", "type": "MODEL", "links": [1], "slot_index": 0},
+        {"name": "CLIP", "type": "CLIP", "links": [2], "slot_index": 1},
+        {"name": "VAE", "type": "VAE", "links": [5], "slot_index": 2}
+      ]
+    },
+    {
+      "id": 2,
+      "type": "CLIPTextEncode",
+      "pos": [450, 100],
+      "size": [210, 100],
+      "properties": {},
+      "widgets_values": ["a cyberpunk city at night, neon lights, rain reflections"],
+      "inputs": [
+        {"name": "clip", "type": "CLIP", "link": 2}
+      ],
+      "outputs": [
+        {"name": "CONDITIONING", "type": "CONDITIONING", "links": [3], "slot_index": 0}
+      ]
+    },
+    {
+      "id": 3,
+      "type": "EmptySD3LatentImage",
+      "pos": [450, 300],
+      "size": [210, 110],
+      "properties": {},
+      "widgets_values": [1024, 1024, 1],
+      "inputs": [],
+      "outputs": [
+        {"name": "LATENT", "type": "LATENT", "links": [4], "slot_index": 0}
+      ]
+    },
+    {
+      "id": 4,
+      "type": "KSampler",
+      "pos": [750, 200],
+      "size": [315, 262],
+      "properties": {},
+      "widgets_values": [123, "fixed", 4, 1.0, "euler", "normal", 1.0],
+      "inputs": [
+        {"name": "model", "type": "MODEL", "link": 1},
+        {"name": "positive", "type": "CONDITIONING", "link": 3},
+        {"name": "negative", "type": "CONDITIONING", "link": null},
+        {"name": "latent_image", "type": "LATENT", "link": 4}
+      ],
+      "outputs": [
+        {"name": "LATENT", "type": "LATENT", "links": [6], "slot_index": 0}
+      ]
+    },
+    {
+      "id": 5,
+      "type": "VAEDecode",
+      "pos": [1100, 200],
+      "size": [210, 46],
+      "properties": {},
+      "widgets_values": [],
+      "inputs": [
+        {"name": "samples", "type": "LATENT", "link": 6},
+        {"name": "vae", "type": "VAE", "link": 5}
+      ],
+      "outputs": [
+        {"name": "IMAGE", "type": "IMAGE", "links": [7], "slot_index": 0}
+      ]
+    },
+    {
+      "id": 6,
+      "type": "SaveImage",
+      "pos": [1350, 200],
+      "size": [210, 270],
+      "properties": {},
+      "widgets_values": ["FluxOutput"],
+      "inputs": [
+        {"name": "images", "type": "IMAGE", "link": 7}
+      ],
+      "outputs": []
+    },
+    {
+      "id": 7,
+      "type": "Note",
+      "pos": [100, 450],
+      "size": [250, 120],
+      "properties": {"text": "Flux Schnell - 4 steps, CFG 1.0"},
+      "bgcolor": "#000000",
+      "color": "#000000",
+      "widgets_values": ["Flux Schnell - 4 steps, CFG 1.0"],
+      "inputs": [],
+      "outputs": []
+    }
+  ],
+  "links": [
+    [1, 1, 0, 4, 0, "MODEL"],
+    [2, 1, 1, 2, 0, "CLIP"],
+    [3, 2, 0, 4, 1, "CONDITIONING"],
+    [4, 3, 0, 4, 3, "LATENT"],
+    [5, 1, 2, 5, 1, "VAE"],
+    [6, 4, 0, 5, 0, "LATENT"],
+    [7, 5, 0, 6, 0, "IMAGE"]
+  ],
+  "groups": [],
+  "config": {},
+  "extra": {}
+}

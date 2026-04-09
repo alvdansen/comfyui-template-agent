@@ -1,0 +1,43 @@
+{
+  "name": "gguf-quantized-txt2img",
+  "title": "GGUF Quantized FLUX.1-schnell Text to Image",
+  "description": "Text-to-image workflow using GGUF-quantized FLUX.1-schnell with ComfyUI-GGUF (city96). Runs Q4_K_S quantized UNET and Q8_0 T5-XXL encoder, significantly reducing VRAM requirements compared to full-precision models. NOTE: .gguf model files cannot be included in the template bundle and must be downloaded manually \u2014 see submission.md for download URLs and placement paths.",
+  "mediaType": "image",
+  "mediaSubtype": "",
+  "tags": [
+    "flux",
+    "gguf",
+    "quantized",
+    "txt2img",
+    "low-vram",
+    "text-to-image"
+  ],
+  "models": [
+    "ae.safetensors",
+    "clip_l.safetensors",
+    "flux1-schnell-Q4_K_S.gguf",
+    "t5-v1_1-xxl-encoder-Q8_0.gguf"
+  ],
+  "requiresCustomNodes": [
+    "ComfyUI-GGUF"
+  ],
+  "date": "2026-03-25",
+  "openSource": true,
+  "size": 1024,
+  "vram": 8,
+  "usage": 0,
+  "searchRank": 0,
+  "username": "city96",
+  "io": {
+    "inputs": [],
+    "outputs": [
+      {
+        "nodeId": 9,
+        "nodeType": "SaveImage",
+        "fieldName": "gguf_flux",
+        "mediaType": "image"
+      }
+    ]
+  },
+  "thumbnail": []
+}

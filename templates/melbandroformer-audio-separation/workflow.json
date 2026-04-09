@@ -1,0 +1,246 @@
+{
+  "last_node_id": 6,
+  "last_link_id": 4,
+  "nodes": [
+    {
+      "id": 1,
+      "type": "LoadAudio",
+      "pos": [
+        100,
+        200
+      ],
+      "size": [
+        315.0,
+        170.0
+      ],
+      "flags": {},
+      "order": 0,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "AUDIO",
+          "type": "AUDIO",
+          "links": [
+            1
+          ]
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "LoadAudio"
+      },
+      "widgets_values": [
+        "audio_1.mp3",
+        0.0,
+        0.0
+      ],
+      "title": "Load Audio"
+    },
+    {
+      "id": 2,
+      "type": "MelBandRoFormerModelLoader",
+      "pos": [
+        100,
+        350
+      ],
+      "size": [
+        315.0,
+        170.0
+      ],
+      "flags": {},
+      "order": 0,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "MELROFORMERMODEL",
+          "type": "MELROFORMERMODEL",
+          "links": [
+            2
+          ]
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "MelBandRoFormerModelLoader"
+      },
+      "widgets_values": [
+        "MelBandRoformer_fp16.safetensors"
+      ],
+      "title": "MelBand Model Loader"
+    },
+    {
+      "id": 3,
+      "type": "MelBandRoFormerSampler",
+      "pos": [
+        500,
+        200
+      ],
+      "size": [
+        315.0,
+        170.0
+      ],
+      "flags": {},
+      "order": 0,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "model",
+          "type": "MELROFORMERMODEL",
+          "link": 2
+        },
+        {
+          "name": "audio",
+          "type": "AUDIO",
+          "link": 1
+        }
+      ],
+      "outputs": [
+        {
+          "name": "vocals",
+          "type": "AUDIO",
+          "links": [
+            3
+          ]
+        },
+        {
+          "name": "instruments",
+          "type": "AUDIO",
+          "links": [
+            4
+          ]
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "MelBandRoFormerSampler"
+      },
+      "widgets_values": [
+        4,
+        352800
+      ],
+      "title": "MelBand Separator"
+    },
+    {
+      "id": 4,
+      "type": "SaveAudioMP3",
+      "pos": [
+        900,
+        200
+      ],
+      "size": [
+        315.0,
+        170.0
+      ],
+      "flags": {},
+      "order": 0,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "audio",
+          "type": "AUDIO",
+          "link": 3
+        }
+      ],
+      "outputs": [],
+      "properties": {
+        "Node name for S&R": "SaveAudioMP3"
+      },
+      "widgets_values": [
+        "vocals",
+        "128k"
+      ],
+      "title": "Save Vocals"
+    },
+    {
+      "id": 5,
+      "type": "SaveAudioMP3",
+      "pos": [
+        900,
+        350
+      ],
+      "size": [
+        315.0,
+        170.0
+      ],
+      "flags": {},
+      "order": 0,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "audio",
+          "type": "AUDIO",
+          "link": 4
+        }
+      ],
+      "outputs": [],
+      "properties": {
+        "Node name for S&R": "SaveAudioMP3"
+      },
+      "widgets_values": [
+        "instruments",
+        "128k"
+      ],
+      "title": "Save Instruments"
+    },
+    {
+      "id": 6,
+      "type": "Note",
+      "pos": [
+        100,
+        520
+      ],
+      "size": [
+        460,
+        300
+      ],
+      "flags": {},
+      "order": 0,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [],
+      "properties": {},
+      "widgets_values": [
+        "MelBandRoFormer Audio Separation\n\nSeparates any audio track into vocals and instruments using the MelBandRoFormer model.\n\nHow it works:\n1. LoadAudio loads your input audio file\n2. MelBandRoFormerModelLoader loads the separation model (MelBandRoformer_fp16.safetensors from models/diffusion_models/)\n3. MelBandRoFormerSampler processes the audio and outputs two stems: vocals and instruments\n4. Two SaveAudioMP3 nodes save each stem as separate MP3 files\n\nRequires: ComfyUI-MelBandRoFormer (kijai)\nModel: MelBandRoformer_fp16.safetensors (~456 MB)\nNote: Input audio should be stereo for best results."
+      ],
+      "color": "#000000",
+      "bgcolor": "#000000"
+    }
+  ],
+  "links": [
+    [
+      1,
+      1,
+      0,
+      3,
+      1,
+      "AUDIO"
+    ],
+    [
+      2,
+      2,
+      0,
+      3,
+      0,
+      "MELROFORMERMODEL"
+    ],
+    [
+      3,
+      3,
+      0,
+      4,
+      0,
+      "AUDIO"
+    ],
+    [
+      4,
+      3,
+      1,
+      5,
+      0,
+      "AUDIO"
+    ]
+  ],
+  "groups": [],
+  "config": {},
+  "extra": {},
+  "version": 0.4
+}

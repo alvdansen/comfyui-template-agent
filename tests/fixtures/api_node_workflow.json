@@ -1,0 +1,117 @@
+{
+  "last_node_id": 7,
+  "last_link_id": 6,
+  "nodes": [
+    {
+      "id": 1,
+      "type": "CheckpointLoaderSimple",
+      "pos": [100, 200],
+      "size": [315, 98],
+      "properties": {},
+      "widgets_values": ["v1-5-pruned-emaonly.safetensors"],
+      "inputs": [],
+      "outputs": [
+        {"name": "MODEL", "type": "MODEL", "links": [1], "slot_index": 0},
+        {"name": "CLIP", "type": "CLIP", "links": [2], "slot_index": 1},
+        {"name": "VAE", "type": "VAE", "links": [4], "slot_index": 2}
+      ]
+    },
+    {
+      "id": 2,
+      "type": "CLIPTextEncode",
+      "pos": [450, 200],
+      "size": [210, 100],
+      "properties": {},
+      "widgets_values": ["enhance this image with artistic style"],
+      "inputs": [
+        {"name": "clip", "type": "CLIP", "link": 2}
+      ],
+      "outputs": [
+        {"name": "CONDITIONING", "type": "CONDITIONING", "links": [3], "slot_index": 0}
+      ]
+    },
+    {
+      "id": 3,
+      "type": "LoadImage",
+      "pos": [100, 400],
+      "size": [315, 314],
+      "properties": {},
+      "widgets_values": ["input.png", "image"],
+      "inputs": [],
+      "outputs": [
+        {"name": "IMAGE", "type": "IMAGE", "links": [5], "slot_index": 0},
+        {"name": "MASK", "type": "MASK", "links": [], "slot_index": 1}
+      ]
+    },
+    {
+      "id": 4,
+      "type": "GeminiImageEditNode",
+      "pos": [750, 200],
+      "size": [315, 150],
+      "properties": {},
+      "widgets_values": ["edit the image to add vibrant colors", 1024, 1024],
+      "inputs": [
+        {"name": "image", "type": "IMAGE", "link": 5},
+        {"name": "conditioning", "type": "CONDITIONING", "link": 3}
+      ],
+      "outputs": [
+        {"name": "IMAGE", "type": "IMAGE", "links": [6], "slot_index": 0}
+      ]
+    },
+    {
+      "id": 5,
+      "type": "VAEDecode",
+      "pos": [1100, 200],
+      "size": [210, 46],
+      "properties": {},
+      "widgets_values": [],
+      "inputs": [
+        {"name": "samples", "type": "LATENT", "link": null},
+        {"name": "vae", "type": "VAE", "link": 4}
+      ],
+      "outputs": [
+        {"name": "IMAGE", "type": "IMAGE", "links": [], "slot_index": 0}
+      ]
+    },
+    {
+      "id": 6,
+      "type": "SaveImage",
+      "pos": [1350, 200],
+      "size": [210, 270],
+      "properties": {},
+      "widgets_values": ["GeminiEdit"],
+      "inputs": [
+        {"name": "images", "type": "IMAGE", "link": 6}
+      ],
+      "outputs": []
+    },
+    {
+      "id": 7,
+      "type": "KSampler",
+      "pos": [750, 450],
+      "size": [315, 262],
+      "properties": {},
+      "widgets_values": [42, "fixed", 20, 7.0, "euler", "normal", 1.0],
+      "inputs": [
+        {"name": "model", "type": "MODEL", "link": 1},
+        {"name": "positive", "type": "CONDITIONING", "link": null},
+        {"name": "negative", "type": "CONDITIONING", "link": null},
+        {"name": "latent_image", "type": "LATENT", "link": null}
+      ],
+      "outputs": [
+        {"name": "LATENT", "type": "LATENT", "links": [], "slot_index": 0}
+      ]
+    }
+  ],
+  "links": [
+    [1, 1, 0, 7, 0, "MODEL"],
+    [2, 1, 1, 2, 0, "CLIP"],
+    [3, 2, 0, 4, 1, "CONDITIONING"],
+    [4, 1, 2, 5, 1, "VAE"],
+    [5, 3, 0, 4, 0, "IMAGE"],
+    [6, 4, 0, 6, 0, "IMAGE"]
+  ],
+  "groups": [],
+  "config": {},
+  "extra": {}
+}

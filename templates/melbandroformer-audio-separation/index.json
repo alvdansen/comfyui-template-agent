@@ -1,0 +1,40 @@
+{
+  "name": "melbandroformer-audio-separation",
+  "title": "MelBandRoFormer Audio Separation",
+  "description": "Separate any audio track into vocals and instruments using MelBandRoFormer \u2014 a state-of-the-art music source separation model by kijai. Load an audio file, run separation, and save both stems as MP3.",
+  "mediaType": "audio",
+  "mediaSubtype": "",
+  "tags": [
+    "audio",
+    "stem separation",
+    "music",
+    "vocals",
+    "instruments",
+    "MelBandRoFormer"
+  ],
+  "models": [
+    "MelBandRoformer_fp16.safetensors"
+  ],
+  "requiresCustomNodes": [
+    "ComfyUI-MelBandRoFormer"
+  ],
+  "date": "2026-03-25",
+  "openSource": true,
+  "size": 1,
+  "vram": 4,
+  "usage": 0,
+  "searchRank": 0,
+  "username": "kijai",
+  "io": {
+    "inputs": [
+      {
+        "nodeId": 1,
+        "nodeType": "LoadAudio",
+        "fieldName": "audio_1.mp3",
+        "mediaType": "audio"
+      }
+    ],
+    "outputs": []
+  },
+  "thumbnail": []
+}

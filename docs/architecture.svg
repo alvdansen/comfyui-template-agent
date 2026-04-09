@@ -1,0 +1,156 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1100 520" width="1100" height="520" font-family="system-ui, -apple-system, 'Segoe UI', Arial, sans-serif">
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M 0 1 L 8 5 L 0 9 z" fill="#9CA3AF"/>
+    </marker>
+    <marker id="arrow-purple" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M 0 1 L 8 5 L 0 9 z" fill="#A78BFA"/>
+    </marker>
+  </defs>
+
+  <!-- Background -->
+  <rect width="1100" height="520" fill="#FFFFFF"/>
+
+  <!-- Title -->
+  <text x="550" y="32" font-size="18" font-weight="700" fill="#111827" text-anchor="middle">ComfyUI Template Agent — Architecture</text>
+
+  <!-- ════════════════════════════════════════ -->
+  <!-- LAYER 1: AGENT SKILLS                   -->
+  <!-- ════════════════════════════════════════ -->
+  <text x="24" y="82" font-size="10" font-weight="600" fill="#7C3AED" letter-spacing="0.08em">AGENT SKILLS</text>
+
+  <!-- 6 skill boxes: 152w × 46h, 8px gap -->
+  <!-- Total: 6×152 + 5×8 = 952, start x = (1100-952)/2 = 74 -->
+
+  <!-- /comfy-discover -->
+  <rect x="74" y="57" width="152" height="46" rx="8" fill="#F3E8FF" stroke="#7C3AED" stroke-width="1.5"/>
+  <text x="150" y="84" font-size="12" fill="#1F2937" text-anchor="middle">/comfy-discover</text>
+
+  <!-- /comfy-template-audit -->
+  <rect x="234" y="57" width="152" height="46" rx="8" fill="#F3E8FF" stroke="#7C3AED" stroke-width="1.5"/>
+  <text x="310" y="78" font-size="11" fill="#1F2937" text-anchor="middle">/comfy-template-</text>
+  <text x="310" y="93" font-size="11" fill="#1F2937" text-anchor="middle">audit</text>
+
+  <!-- /comfy-validate -->
+  <rect x="394" y="57" width="152" height="46" rx="8" fill="#F3E8FF" stroke="#7C3AED" stroke-width="1.5"/>
+  <text x="470" y="84" font-size="12" fill="#1F2937" text-anchor="middle">/comfy-validate</text>
+
+  <!-- /comfy-compose -->
+  <rect x="554" y="57" width="152" height="46" rx="8" fill="#F3E8FF" stroke="#7C3AED" stroke-width="1.5"/>
+  <text x="630" y="84" font-size="12" fill="#1F2937" text-anchor="middle">/comfy-compose</text>
+
+  <!-- /comfy-document -->
+  <rect x="714" y="57" width="152" height="46" rx="8" fill="#F3E8FF" stroke="#7C3AED" stroke-width="1.5"/>
+  <text x="790" y="84" font-size="12" fill="#1F2937" text-anchor="middle">/comfy-document</text>
+
+  <!-- /comfy-flow (orchestrator) -->
+  <rect x="874" y="57" width="152" height="46" rx="8" fill="#EDE9FE" stroke="#7C3AED" stroke-width="2"/>
+  <text x="950" y="78" font-size="12" fill="#1F2937" text-anchor="middle">/comfy-flow</text>
+  <text x="950" y="93" font-size="9" fill="#7C3AED" text-anchor="middle">orchestrator</text>
+
+  <!-- ════════════════════════════════════════ -->
+  <!-- ARROWS: Skills → Modules                -->
+  <!-- ════════════════════════════════════════ -->
+  <!-- Skill centers: 150, 310, 470, 630, 790 -->
+  <!-- Module centers: 182, 366, 550, 734, 918 -->
+
+  <line x1="150" y1="103" x2="182" y2="188" stroke="#9CA3AF" stroke-width="1.2" marker-end="url(#arrow)"/>
+  <line x1="310" y1="103" x2="366" y2="188" stroke="#9CA3AF" stroke-width="1.2" marker-end="url(#arrow)"/>
+  <line x1="470" y1="103" x2="550" y2="188" stroke="#9CA3AF" stroke-width="1.2" marker-end="url(#arrow)"/>
+  <line x1="630" y1="103" x2="734" y2="188" stroke="#9CA3AF" stroke-width="1.2" marker-end="url(#arrow)"/>
+  <line x1="790" y1="103" x2="918" y2="188" stroke="#9CA3AF" stroke-width="1.2" marker-end="url(#arrow)"/>
+
+  <!-- /comfy-flow dashed arrows to all modules -->
+  <line x1="920" y1="103" x2="182" y2="188" stroke="#A78BFA" stroke-width="1" stroke-dasharray="4 3" marker-end="url(#arrow-purple)"/>
+  <line x1="935" y1="103" x2="366" y2="188" stroke="#A78BFA" stroke-width="1" stroke-dasharray="4 3" marker-end="url(#arrow-purple)"/>
+  <line x1="950" y1="103" x2="550" y2="188" stroke="#A78BFA" stroke-width="1" stroke-dasharray="4 3" marker-end="url(#arrow-purple)"/>
+  <line x1="965" y1="103" x2="734" y2="188" stroke="#A78BFA" stroke-width="1" stroke-dasharray="4 3" marker-end="url(#arrow-purple)"/>
+  <line x1="980" y1="103" x2="918" y2="188" stroke="#A78BFA" stroke-width="1" stroke-dasharray="4 3" marker-end="url(#arrow-purple)"/>
+
+  <!-- ════════════════════════════════════════ -->
+  <!-- LAYER 2: PYTHON MODULES                 -->
+  <!-- ════════════════════════════════════════ -->
+  <text x="24" y="218" font-size="10" font-weight="600" fill="#2563EB" letter-spacing="0.08em">PYTHON MODULES</text>
+
+  <!-- 5 module boxes: 176w × 46h, 8px gap -->
+  <!-- Total: 5×176 + 4×8 = 912, start x = (1100-912)/2 = 94 -->
+
+  <!-- src/registry/ -->
+  <rect x="94" y="192" width="176" height="46" rx="8" fill="#DBEAFE" stroke="#2563EB" stroke-width="1.5"/>
+  <text x="182" y="213" font-size="12" fill="#1F2937" text-anchor="middle">src/registry/</text>
+  <text x="182" y="228" font-size="9.5" fill="#6B7280" text-anchor="middle">highlights, search, spec</text>
+
+  <!-- src/templates/ -->
+  <rect x="278" y="192" width="176" height="46" rx="8" fill="#DBEAFE" stroke="#2563EB" stroke-width="1.5"/>
+  <text x="366" y="213" font-size="12" fill="#1F2937" text-anchor="middle">src/templates/</text>
+  <text x="366" y="228" font-size="9.5" fill="#6B7280" text-anchor="middle">fetch, search, coverage</text>
+
+  <!-- src/validator/ -->
+  <rect x="462" y="192" width="176" height="46" rx="8" fill="#DBEAFE" stroke="#2563EB" stroke-width="1.5"/>
+  <text x="550" y="213" font-size="12" fill="#1F2937" text-anchor="middle">src/validator/</text>
+  <text x="550" y="228" font-size="9.5" fill="#6B7280" text-anchor="middle">rules, engine, validate</text>
+
+  <!-- src/composer/ -->
+  <rect x="646" y="192" width="176" height="46" rx="8" fill="#DBEAFE" stroke="#2563EB" stroke-width="1.5"/>
+  <text x="734" y="213" font-size="12" fill="#1F2937" text-anchor="middle">src/composer/</text>
+  <text x="734" y="228" font-size="9.5" fill="#6B7280" text-anchor="middle">graph, scaffold, layout</text>
+
+  <!-- src/document/ -->
+  <rect x="830" y="192" width="176" height="46" rx="8" fill="#DBEAFE" stroke="#2563EB" stroke-width="1.5"/>
+  <text x="918" y="213" font-size="12" fill="#1F2937" text-anchor="middle">src/document/</text>
+  <text x="918" y="228" font-size="9.5" fill="#6B7280" text-anchor="middle">metadata, notion, generate</text>
+
+  <!-- src/shared/ bar -->
+  <rect x="94" y="248" width="912" height="34" rx="8" fill="#E0E7FF" stroke="#4F46E5" stroke-width="1.5"/>
+  <text x="550" y="270" font-size="12" fill="#1F2937" text-anchor="middle">src/shared/ — HTTP client (httpx) · DiskCache · format detection</text>
+
+  <!-- ════════════════════════════════════════ -->
+  <!-- ARROWS: Modules → Data Sources          -->
+  <!-- ════════════════════════════════════════ -->
+  <line x1="250" y1="282" x2="211" y2="362" stroke="#9CA3AF" stroke-width="1.2" marker-end="url(#arrow)"/>
+  <line x1="420" y1="282" x2="427" y2="362" stroke="#9CA3AF" stroke-width="1.2" marker-end="url(#arrow)"/>
+  <line x1="680" y1="282" x2="643" y2="362" stroke="#9CA3AF" stroke-width="1.2" marker-end="url(#arrow)"/>
+  <line x1="830" y1="282" x2="859" y2="362" stroke="#9CA3AF" stroke-width="1.2" marker-end="url(#arrow)"/>
+
+  <!-- ════════════════════════════════════════ -->
+  <!-- LAYER 3: DATA SOURCES                   -->
+  <!-- ════════════════════════════════════════ -->
+  <text x="24" y="393" font-size="10" font-weight="600" fill="#16A34A" letter-spacing="0.08em">DATA SOURCES</text>
+
+  <!-- 4 boxes: 210w × 46h, 16px gap -->
+  <!-- Total: 4×210 + 3×16 = 888, start x = (1100-888)/2 = 106 -->
+
+  <!-- Registry API -->
+  <rect x="106" y="366" width="210" height="46" rx="8" fill="#DCFCE7" stroke="#16A34A" stroke-width="1.5"/>
+  <text x="211" y="387" font-size="12" fill="#1F2937" text-anchor="middle">Registry API</text>
+  <text x="211" y="402" font-size="9.5" fill="#6B7280" text-anchor="middle">api.comfy.org · 8,400+ nodes</text>
+
+  <!-- GitHub API -->
+  <rect x="332" y="366" width="210" height="46" rx="8" fill="#DCFCE7" stroke="#16A34A" stroke-width="1.5"/>
+  <text x="437" y="387" font-size="12" fill="#1F2937" text-anchor="middle">GitHub API</text>
+  <text x="437" y="402" font-size="9.5" fill="#6B7280" text-anchor="middle">workflow_templates · 400+</text>
+
+  <!-- ComfyUI Cloud MCP -->
+  <rect x="558" y="366" width="210" height="46" rx="8" fill="#DCFCE7" stroke="#16A34A" stroke-width="1.5"/>
+  <text x="663" y="387" font-size="12" fill="#1F2937" text-anchor="middle">ComfyUI Cloud MCP</text>
+  <text x="663" y="402" font-size="9.5" fill="#6B7280" text-anchor="middle">workflow execution</text>
+
+  <!-- data/ (static, amber) -->
+  <rect x="784" y="366" width="210" height="46" rx="8" fill="#FEF3C7" stroke="#D97706" stroke-width="1.5"/>
+  <text x="889" y="387" font-size="12" fill="#1F2937" text-anchor="middle">data/</text>
+  <text x="889" y="402" font-size="9.5" fill="#6B7280" text-anchor="middle">core_nodes · guidelines · api_nodes</text>
+
+  <!-- ════════════════════════════════════════ -->
+  <!-- LEGEND                                  -->
+  <!-- ════════════════════════════════════════ -->
+  <text x="74" y="460" font-size="9.5" fill="#9CA3AF">
+    <tspan>── direct dependency</tspan>
+    <tspan dx="24">- - orchestration</tspan>
+  </text>
+  <line x1="74" y1="470" x2="110" y2="470" stroke="#9CA3AF" stroke-width="1.2"/>
+  <line x1="150" y1="470" x2="186" y2="470" stroke="#A78BFA" stroke-width="1" stroke-dasharray="4 3"/>
+
+  <!-- Footer -->
+  <text x="550" y="500" font-size="10" fill="#D1D5DB" text-anchor="middle">Alvdansen Labs · comfyui-template-agent v3.0</text>
+
+</svg>

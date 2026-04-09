@@ -1,0 +1,12 @@
+{
+  "api_nodes": [
+    {"class_type_pattern": "Gemini", "provider": "Google Gemini", "auth_type": "comfy_org_jwt", "known_nodes": ["GeminiImage2Node", "GeminiFlashEdit"]},
+    {"class_type_pattern": "BFL", "provider": "Black Forest Labs", "auth_type": "comfy_org_jwt", "known_nodes": ["BFLFluxProGenerate", "BFLFluxFillGenerate", "BFLFluxReduxGenerate", "BFLFluxDepthGenerate", "BFLFluxCannyGenerate"]},
+    {"class_type_pattern": "Bria", "provider": "Bria AI", "auth_type": "comfy_org_jwt", "known_nodes": []},
+    {"class_type_pattern": "ByteDance", "provider": "ByteDance", "auth_type": "comfy_org_jwt", "known_nodes": []},
+    {"class_type_pattern": "ElevenLabs", "provider": "ElevenLabs", "auth_type": "comfy_org_jwt", "known_nodes": []},
+    {"class_type_pattern": "Recraft", "provider": "Recraft", "auth_type": "comfy_org_jwt", "known_nodes": []},
+    {"class_type_pattern": "Luma", "provider": "Luma AI", "auth_type": "comfy_org_jwt", "known_nodes": []}
+  ],
+  "auth_hidden_inputs": ["api_key_comfy_org"]
+}

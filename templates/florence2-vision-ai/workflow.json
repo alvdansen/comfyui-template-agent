@@ -1,0 +1,259 @@
+{
+  "last_node_id": 6,
+  "last_link_id": 4,
+  "nodes": [
+    {
+      "id": 1,
+      "type": "LoadImage",
+      "pos": [
+        100,
+        200
+      ],
+      "size": [
+        315.0,
+        170.0
+      ],
+      "flags": {},
+      "order": 0,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "IMAGE",
+          "type": "IMAGE",
+          "links": [
+            1
+          ]
+        },
+        {
+          "name": "MASK",
+          "type": "MASK",
+          "links": []
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "LoadImage"
+      },
+      "widgets_values": [
+        "example.png",
+        "image"
+      ],
+      "title": "Load Image"
+    },
+    {
+      "id": 2,
+      "type": "DownloadAndLoadFlorence2Model",
+      "pos": [
+        100,
+        350
+      ],
+      "size": [
+        315.0,
+        170.0
+      ],
+      "flags": {},
+      "order": 0,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "FL2MODEL",
+          "type": "FL2MODEL",
+          "links": [
+            2
+          ]
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "DownloadAndLoadFlorence2Model"
+      },
+      "widgets_values": [
+        "microsoft/Florence-2-large-ft",
+        "fp16",
+        "sdpa"
+      ],
+      "title": "Load Florence2 Model"
+    },
+    {
+      "id": 3,
+      "type": "Florence2Run",
+      "pos": [
+        500,
+        200
+      ],
+      "size": [
+        315.0,
+        170.0
+      ],
+      "flags": {},
+      "order": 0,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "image",
+          "type": "IMAGE",
+          "link": 1
+        },
+        {
+          "name": "florence2_model",
+          "type": "FL2MODEL",
+          "link": 2
+        }
+      ],
+      "outputs": [
+        {
+          "name": "IMAGE",
+          "type": "IMAGE",
+          "links": [
+            3
+          ]
+        },
+        {
+          "name": "MASK",
+          "type": "MASK",
+          "links": []
+        },
+        {
+          "name": "STRING",
+          "type": "STRING",
+          "links": [
+            4
+          ]
+        },
+        {
+          "name": "JSON",
+          "type": "JSON",
+          "links": []
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "Florence2Run"
+      },
+      "widgets_values": [
+        "more_detailed_caption",
+        "",
+        true,
+        1024,
+        3
+      ],
+      "title": "Florence2 Run"
+    },
+    {
+      "id": 4,
+      "type": "PreviewImage",
+      "pos": [
+        900,
+        200
+      ],
+      "size": [
+        315.0,
+        170.0
+      ],
+      "flags": {},
+      "order": 0,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "images",
+          "type": "IMAGE",
+          "link": 3
+        }
+      ],
+      "outputs": [],
+      "properties": {
+        "Node name for S&R": "PreviewImage"
+      },
+      "widgets_values": [],
+      "title": "Preview Image"
+    },
+    {
+      "id": 5,
+      "type": "PreviewAny",
+      "pos": [
+        900,
+        350
+      ],
+      "size": [
+        315.0,
+        170.0
+      ],
+      "flags": {},
+      "order": 0,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "input",
+          "type": "*",
+          "link": 4
+        }
+      ],
+      "outputs": [],
+      "properties": {
+        "Node name for S&R": "PreviewAny"
+      },
+      "widgets_values": [],
+      "title": "Preview Caption"
+    },
+    {
+      "id": 6,
+      "type": "Note",
+      "pos": [
+        100,
+        520
+      ],
+      "size": [
+        460,
+        300
+      ],
+      "flags": {},
+      "order": 0,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [],
+      "properties": {},
+      "widgets_values": [
+        "Florence2 Vision AI \u2014 Multi-Task Captioning\n\nUses Microsoft's Florence-2-large-ft model for image understanding tasks: captioning, object detection, segmentation, and OCR \u2014 all from one model.\n\nHow it works:\n1. LoadImage loads your input image\n2. DownloadAndLoadFlorence2Model downloads the model from HuggingFace on first run (~1.5 GB) and loads it in fp16 precision\n3. Florence2Run processes the image with the selected task (default: more_detailed_caption)\n4. PreviewImage shows the annotated output image\n5. PreviewAny displays the generated caption text\n\nTo try other tasks: Change the 'task' dropdown on Florence2Run. Options include caption, detailed_caption, ocr, referring_expression_segmentation, and more. Some tasks require text_input (e.g. segmentation needs a description of what to segment).\n\nRequires: ComfyUI-Florence2 (kijai)\nModel: microsoft/Florence-2-large-ft (auto-downloads)"
+      ],
+      "color": "#000000",
+      "bgcolor": "#000000"
+    }
+  ],
+  "links": [
+    [
+      1,
+      1,
+      0,
+      3,
+      0,
+      "IMAGE"
+    ],
+    [
+      2,
+      2,
+      0,
+      3,
+      1,
+      "FL2MODEL"
+    ],
+    [
+      3,
+      3,
+      0,
+      4,
+      0,
+      "IMAGE"
+    ],
+    [
+      4,
+      3,
+      2,
+      5,
+      0,
+      "STRING"
+    ]
+  ],
+  "groups": [],
+  "config": {},
+  "extra": {},
+  "version": 0.4
+}

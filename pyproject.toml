@@ -1,0 +1,46 @@
+[project]
+name = "comfyui-template-agent"
+version = "3.0.0"
+description = "Claude Code agent toolkit for ComfyUI template creation"
+readme = "README.md"
+license = {text = "MIT"}
+authors = [
+    {name = "Alvdansen Labs", email = "timothy@comfy.org"},
+]
+keywords = ["comfyui", "templates", "workflows", "claude-code", "agent", "ai"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Software Development :: Libraries :: Application Frameworks",
+]
+requires-python = ">=3.12"
+dependencies = [
+    "httpx>=0.28",
+    "pydantic>=2.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=9.0",
+    "ruff>=0.15",
+]
+
+[project.urls]
+Homepage = "https://github.com/alvdansen/comfyui-template-agent"
+Repository = "https://github.com/alvdansen/comfyui-template-agent"
+Issues = "https://github.com/alvdansen/comfyui-template-agent/issues"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["src*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = "test_*.py"
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
