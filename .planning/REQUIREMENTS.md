@@ -83,38 +83,38 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| REPO-01 | — | Pending |
-| REPO-02 | — | Pending |
-| REPO-03 | — | Pending |
-| REPO-04 | — | Pending |
-| CONTENT-01 | — | Pending |
-| CONTENT-02 | — | Pending |
-| CONTENT-03 | — | Pending |
-| CONTENT-04 | — | Pending |
-| CONTENT-05 | — | Pending |
-| CONTENT-06 | — | Pending |
-| CONTENT-07 | — | Pending |
-| CONTENT-08 | — | Pending |
-| CONTENT-09 | — | Pending |
-| PRESENT-01 | — | Pending |
-| PRESENT-02 | — | Pending |
-| PRESENT-03 | — | Pending |
-| PRESENT-04 | — | Pending |
-| PRESENT-05 | — | Pending |
-| INFRA-01 | — | Pending |
-| INFRA-02 | — | Pending |
-| INFRA-03 | — | Pending |
-| PUBLISH-01 | — | Pending |
-| PUBLISH-02 | — | Pending |
-| PUBLISH-03 | — | Pending |
-| PUBLISH-04 | — | Pending |
-| PUBLISH-05 | — | Pending |
+| REPO-01 | Phase 12 | Pending |
+| REPO-02 | Phase 12 | Pending |
+| REPO-03 | Phase 12 | Pending |
+| REPO-04 | Phase 12 | Pending |
+| CONTENT-01 | Phase 13 | Pending |
+| CONTENT-02 | Phase 13 | Pending |
+| CONTENT-03 | Phase 13 | Pending |
+| CONTENT-04 | Phase 13 | Pending |
+| CONTENT-05 | Phase 13 | Pending |
+| CONTENT-06 | Phase 13 | Pending |
+| CONTENT-07 | Phase 13 | Pending |
+| CONTENT-08 | Phase 13 | Pending |
+| CONTENT-09 | Phase 13 | Pending |
+| PRESENT-01 | Phase 14 | Pending |
+| PRESENT-02 | Phase 14 | Pending |
+| PRESENT-03 | Phase 16 | Pending |
+| PRESENT-04 | Phase 15 | Pending |
+| PRESENT-05 | Phase 14 | Pending |
+| INFRA-01 | Phase 15 | Pending |
+| INFRA-02 | Phase 15 | Pending |
+| INFRA-03 | Phase 15 | Pending |
+| PUBLISH-01 | Phase 16 | Pending |
+| PUBLISH-02 | Phase 16 | Pending |
+| PUBLISH-03 | Phase 16 | Pending |
+| PUBLISH-04 | Phase 16 | Pending |
+| PUBLISH-05 | Phase 16 | Pending |
 
 **Coverage:**
 - v3.0 requirements: 26 total
-- Mapped to phases: 0
-- Unmapped: 26 ⚠️ (awaiting roadmap)
+- Mapped to phases: 26
+- Unmapped: 0
 
 ---
 *Requirements defined: 2026-04-08*
-*Last updated: 2026-04-08 after initial definition*
+*Last updated: 2026-04-08 after roadmap creation*

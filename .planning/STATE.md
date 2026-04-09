@@ -2,12 +2,12 @@
 gsd_state_version: 1.0
 milestone: v3.0
 milestone_name: Publish & Present
-status: planning
-stopped_at: Milestone initiated — awaiting research and requirements
+status: ready_to_plan
+stopped_at: Roadmap created — 5 phases (12-16), 26 requirements mapped
 last_updated: "2026-04-08"
 last_activity: 2026-04-08
 progress:
-  total_phases: 0
+  total_phases: 5
   completed_phases: 0
   total_plans: 0
   completed_plans: 0
@@ -21,14 +21,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-04-08)
 
 **Core value:** Template creators can go from "what should we build next?" to "here's a cloud-tested workflow with submission docs" in a single guided session
-**Current focus:** v3.0 — Polish repo for Alvdansen Labs public release + async presentation materials via Hermes
+**Current focus:** Phase 12 — Repo Foundation (license, metadata, .gitignore, changelog)
 
 ## Current Position
 
-Phase: Pre-planning (research + requirements)
+Phase: 12 of 16 (Repo Foundation)
 Plan: None yet
-Status: Planning v3.0
-Last activity: 2026-04-08
+Status: Ready to plan
+Last activity: 2026-04-08 — Roadmap created for v3.0 (5 phases, 26 requirements)
 
 Progress: [____________________] 0%
 
@@ -55,6 +55,9 @@ Progress: [____________________] 0%
 ### Decisions
 
 All key decisions validated through v2.0 — see PROJECT.md Key Decisions table.
+- v3.0: Fresh repo under alvdansen org (no history rewriting)
+- v3.0: Manim/Excalidraw/python-pptx are Hermes-only deps (not in pyproject.toml)
+- v3.0: .planning/ excluded from public repo via .gitignore
 
 ### Pending Todos
 
@@ -62,12 +65,13 @@ None.
 
 ### Blockers/Concerns
 
-- Hermes server availability required for Manim/Excalidraw/PowerPoint generation
-- Alvdansen Labs GitHub org access needed for publishing
-- Research Phase deadline: Apr 17
+- Hermes server availability required for Phase 14 (Manim/Excalidraw/PowerPoint)
+- Alvdansen Labs GitHub org access needed for Phase 16 (publishing)
+- Research Phase deadline: Apr 17 — presentation materials must ship by then
+- Phase 14 can run parallel with Phase 13 on Hermes
 
 ## Session Continuity
 
 Last session: 2026-04-08
-Stopped at: Milestone initiated — awaiting research and requirements
+Stopped at: Roadmap created — ready to plan Phase 12
 Resume file: None
