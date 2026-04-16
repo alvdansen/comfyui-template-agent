@@ -50,7 +50,7 @@ mkdir -p "$SKILLS_DIR"
 
 echo ""
 echo "Linking skills..."
-for skill in comfy-discover comfy-template-audit comfy-validate comfy-compose comfy-document comfy-flow comfy-onboard comfy-explain; do
+for skill in comfy-discover comfy-template-audit comfy-validate comfy-compose comfy-document comfy-flow comfy-onboard comfy-explain comfy-demo; do
     target="$SKILLS_DIR/$skill"
     source="$REPO_SKILLS/$skill"
     if [[ -L "$target" ]]; then
