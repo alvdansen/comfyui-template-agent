@@ -1,0 +1,133 @@
+{
+  "version": "2.0.0",
+  "description": "Intent catalog for /comfy-onboard. Maps creator-language goals to starter templates the agent can scaffold on first run. Keep entries short; the matcher uses keyword overlap plus LLM judgment.",
+  "intents": [
+    {
+      "id": "text-to-image-fast",
+      "goal_phrases": [
+        "I want to make an image from text",
+        "text to image",
+        "generate a picture",
+        "text2img",
+        "t2i",
+        "draw me a",
+        "create an image of"
+      ],
+      "starter_template": "gguf-quantized-txt2img",
+      "why": "FLUX.1-schnell GGUF fits in ~6GB VRAM, runs in ~8 seconds per image, and produces strong results on the first try. No loras, no samplers to pick, no negative prompt — the smallest possible cliff.",
+      "first_output_expectation": "One 1024x1024 image from a prompt you provide. Runs locally if you have 6GB VRAM, or cloud via the Comfy Org API.",
+      "next_hops": [
+        "swap to FLUX.1-dev for higher quality (slower)",
+        "add a LoRA loader for style control",
+        "try img2img by replacing EmptyLatentImage with LoadImage + VAEEncode"
+      ],
+      "required_nodes": [
+        "UnetLoaderGGUF",
+        "CLIPLoader",
+        "VAELoader",
+        "EmptyLatentImage",
+        "CLIPTextEncode",
+        "KSampler",
+        "VAEDecode",
+        "SaveImage"
+      ],
+      "tags": ["image", "text2img", "beginner", "cpu-or-gpu", "cloud-ready"]
+    },
+    {
+      "id": "face-fix-existing-image",
+      "goal_phrases": [
+        "fix the face in my image",
+        "face swap",
+        "my character's face looks bad",
+        "detail the face",
+        "face enhance",
+        "facedetailer",
+        "bad face"
+      ],
+      "starter_template": "impact-pack-face-detailer",
+      "why": "Impact Pack FaceDetailer is the most reliable face-fix pattern in ComfyUI. Detects faces, crops to bbox, runs a second KSampler pass at higher detail, composites back. No manual masking.",
+      "first_output_expectation": "Your input image with improved faces. Runs on top of an existing generation — bring your own image.",
+      "next_hops": [
+        "stack with DetailerForEach for multi-face batches",
+        "swap the detailer model for SDXL or FLUX",
+        "add a person detector for full-body refinement"
+      ],
+      "required_nodes": [
+        "LoadImage",
+        "UltralyticsDetectorProvider",
+        "SAMLoader",
+        "FaceDetailer",
+        "CheckpointLoaderSimple",
+        "SaveImage"
+      ],
+      "tags": ["image", "fix", "face", "impact-pack", "img2img"]
+    },
+    {
+      "id": "caption-or-describe-image",
+      "goal_phrases": [
+        "describe my image",
+        "caption this",
+        "tag my images",
+        "what's in this picture",
+        "image to text",
+        "img2txt",
+        "vlm",
+        "florence"
+      ],
+      "starter_template": "florence2-vision-ai",
+      "why": "Florence-2 is Microsoft's open multimodal VLM. This template exposes captioning, object detection, and OCR in one graph. Useful for dataset labeling and prompt reverse-engineering.",
+      "first_output_expectation": "A caption string + optional bounding boxes drawn on your input image.",
+      "next_hops": [
+        "batch over a folder of images with an iterator node",
+        "pipe captions into a CLIPTextEncode to recreate the image",
+        "add Tagger for booru-style tag output"
+      ],
+      "required_nodes": [
+        "LoadImage",
+        "Florence2ModelLoader",
+        "Florence2Run",
+        "PreviewImage"
+      ],
+      "tags": ["image", "caption", "tagging", "vlm", "dataset"]
+    },
+    {
+      "id": "separate-audio-stems",
+      "goal_phrases": [
+        "extract vocals",
+        "remove the music",
+        "karaoke",
+        "stem separation",
+        "split audio",
+        "acapella",
+        "isolate voice"
+      ],
+      "starter_template": "melbandroformer-audio-separation",
+      "why": "MelBandRoFormer is the current SOTA open-source stem separator. This template loads one audio file and outputs vocals + instrumental stems in under 30 seconds on GPU.",
+      "first_output_expectation": "Two .wav files: vocals and instrumental. Source can be any format ffmpeg reads.",
+      "next_hops": [
+        "chain with Whisper for lyrics transcription",
+        "add a pitch-shift node for key change",
+        "export as separate layers for a DAW"
+      ],
+      "required_nodes": [
+        "LoadAudio",
+        "MelBandRoFormerModelLoader",
+        "MelBandRoFormerSampler",
+        "SaveAudio"
+      ],
+      "tags": ["audio", "separation", "vocals", "karaoke"]
+    }
+  ],
+  "fallback": {
+    "message": "I don't have a starter for that exact goal yet — here are the four starters I can scaffold for you today. Tell me which is closest to what you want to make, or describe your goal in more detail and I'll pick the best match.",
+    "list_ids": ["text-to-image-fast", "face-fix-existing-image", "caption-or-describe-image", "separate-audio-stems"]
+  },
+  "matching_rules": {
+    "strategy": "Prefer exact phrase match on goal_phrases first. If none, fall back to keyword overlap on tags. If still ambiguous, show the top 2 candidates and ask the user to pick. Never scaffold blindly — the user must confirm the starter before any file is written.",
+    "never_do": [
+      "Auto-scaffold without confirmation",
+      "Pick a starter when the user's goal is outside the catalog (show fallback instead)",
+      "Rewrite a user's existing workflow.json — scaffolding always creates a new file"
+    ]
+  }
+}

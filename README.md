@@ -10,23 +10,23 @@
 </p>
 
 <p align="center">
-  <strong>Go from "what should we build?" to a submission-ready ComfyUI template in a single conversation.</strong>
+  <strong>From "what is this?" to "I just made my first image" — and from "what should we build?" to a submission-ready template — in a single conversation.</strong>
 </p>
 
 ---
 
-**ComfyUI Template Agent** is a Claude Code toolkit that gives you six agent skills for creating ComfyUI templates. It handles node discovery, template gap analysis, workflow validation, composition, and documentation generation -- all through natural language in your terminal.
+**ComfyUI Template Agent v2** is a Claude Code toolkit with eight agent skills spanning two audiences. The original **creator** pack (v1) handles node discovery, gap analysis, workflow validation, composition, and submission docs. The new **first-run** pack (v2) closes the cold-start cliff: new users go from zero ComfyUI experience to a validated, running workflow in one conversation, with every node explained in plain language along the way.
 
-> You talk to Claude. Claude talks to the ComfyUI ecosystem. You get a tested, validated, submission-ready template.
+> You talk to Claude. Claude talks to the ComfyUI ecosystem. You get either your first working image or a tested, validated, submission-ready template -- depending on which skill you invoke.
 
 <br>
 
 <table>
 <tr>
 <td align="center"><strong>4</strong><br><sub>Production Templates</sub></td>
-<td align="center"><strong>6</strong><br><sub>Agent Skills</sub></td>
-<td align="center"><strong>5.5M+</strong><br><sub>Node Pack Downloads Covered</sub></td>
-<td align="center"><strong>&lt;60s</strong><br><sub>Clone to First Command</sub></td>
+<td align="center"><strong>8</strong><br><sub>Agent Skills (v2)</sub></td>
+<td align="center"><strong>4</strong><br><sub>First-Run Starters</sub></td>
+<td align="center"><strong>&lt;2min</strong><br><sub>Zero to First Image (Cloud)</sub></td>
 </tr>
 </table>
 
@@ -80,6 +80,8 @@ That's it. The agent walks you through the entire process.
 
 ## Skills
 
+### For creators (v1)
+
 | Command | What It Does |
 |---------|-------------|
 | `/comfy-discover` | Browse trending, new, and popular nodes from the ComfyUI registry |
@@ -89,7 +91,14 @@ That's it. The agent walks you through the entire process.
 | `/comfy-document` | Generate index.json, Notion markdown, and thumbnail specs |
 | `/comfy-flow` | **Guided end-to-end**: discover nodes to submission-ready docs in one session |
 
-Each skill is invoked with a `/slash-command` in Claude Code. Start with `/comfy-flow` for the full guided experience, or use individual skills for specific tasks.
+### For new users (v2 — new)
+
+| Command | What It Does |
+|---------|-------------|
+| `/comfy-onboard` | **Guided first-run**: intent → scaffold → validate → run a working workflow, start to finish |
+| `/comfy-explain` | Plain-language explanations of any node, parameter, error message, or guideline rule |
+
+Start with `/comfy-onboard` if you've never used ComfyUI before — it takes you from "what do I even do here" to a running image in about two minutes on Comfy Cloud. Use `/comfy-flow` if you already know ComfyUI and want to build a submission-quality template.
 
 <br>
 

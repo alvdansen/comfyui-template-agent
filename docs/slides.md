@@ -15,11 +15,11 @@ style: |
 
 # ComfyUI Template Agent
 
-## Claude Code Agent Toolkit for Template Creation
+## Research Phase Demo: Agent-Powered Template Creation
 
 **4** production templates · **6** agent skills · **5.5M+** combined downloads
 
-Alvdansen Labs · Comfy-Org Research Phase · April 2026
+Alvdansen Labs · #proj-comfy-agent · April 2026
 
 ---
 
@@ -180,17 +180,17 @@ All extracted automatically from the workflow JSON.
 
 # Next Steps
 
-**Short term:**
-- GitHub Actions CI (ruff + pytest)
-- Demo recording (terminal GIF)
-- Publish to `alvdansen/comfyui-template-agent`
+**Shipped ✓**
+- Published at [alvdansen/comfyui-template-agent](https://github.com/alvdansen/comfyui-template-agent)
+- GitHub Actions CI (ruff + pytest), demo GIF, full documentation
+- 4 templates with submission packages ready for review
 
-**Medium term:**
-- Submit remaining 3 templates to workflow_templates repo
-- Expand node pack coverage (video category, ControlNet, IPAdapter)
-- MCP server integration for direct Comfy Cloud testing
+**Research Phase Integration:**
+- Submit 4 templates to `workflow_templates` repo
+- Deeper MCP Server v0.2.1 integration for live cloud validation
+- Expand coverage: video, ControlNet, IPAdapter node packs
 
-**Long term:**
-- Template auto-generation from node pack metadata
-- Community contribution pipeline
+**Roadmap:**
+- Template auto-generation from node pack metadata alone
+- Community contribution pipeline via `/comfy-flow`
 - Integration with Comfy-Org template review process

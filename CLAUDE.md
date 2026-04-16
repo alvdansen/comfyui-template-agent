@@ -1,8 +1,10 @@
-# ComfyUI Template Agent
+# ComfyUI Template Agent — v2
 
-Claude Code agent toolkit for ComfyUI template creation. Six skills guide template creators from node discovery through submission documentation.
+Claude Code agent toolkit for ComfyUI. Eight skills span two audiences: **creators** building submission-quality templates, and **new users** getting their first generation running.
 
 ## Skills
+
+### Creator skills (v1)
 
 | Skill | Trigger |
 |-------|---------|
@@ -13,6 +15,15 @@ Claude Code agent toolkit for ComfyUI template creation. Six skills guide templa
 | comfy-document | Generating submission docs -- index.json, Notion markdown, thumbnail specs |
 | comfy-flow | Guided end-to-end template creation ("let's make a template") |
 
+### First-run skills (v2 — new)
+
+| Skill | Trigger |
+|-------|---------|
+| comfy-onboard | Brand-new user wanting their first generation -- "help me get started," "I want to try ComfyUI" |
+| comfy-explain | User asks what a node, parameter, error, or guideline rule means in plain language |
+
+The v2 skills sit on top of the same `src/` modules the creator skills use — `comfy-onboard` reuses `src.composer.compose` and `src.validator.validate`; `comfy-explain` reuses `src.registry.spec` and `src.templates.search`. No duplication.
+
 ## Development
 
 ```bash
@@ -20,6 +31,11 @@ pytest                                     # Run tests (~0.5s)
 python -m src.registry.highlights trending  # Test discovery
 python -m src.validator.validate --file workflow.json  # Test validation
 python -m src.templates.coverage gap --limit 10  # Test gap analysis
+
+# v2 onboarding
+python -m src.onboard.catalog --goal "I want to make an image from text"
+python -m src.onboard.explain --node KSampler
+python -m src.onboard.explain --guideline "cloud compatibility"
 ```
 
 ## Architecture
@@ -30,7 +46,8 @@ python -m src.templates.coverage gap --limit 10  # Test gap analysis
 - `src/validator/` -- Validation engine (rules, engine, validate CLI)
 - `src/composer/` -- Workflow composition (graph, scaffold, layout, compose CLI)
 - `src/document/` -- Documentation generation (metadata, notion, generate CLI, orchestrator)
-- `data/` -- Static data (core_nodes.json, guidelines.json, api_nodes.json)
+- `src/onboard/` -- **v2:** intent matching (`catalog.py`), creator-language node/guideline explanations (`explain.py`)
+- `data/` -- Static data (core_nodes.json, guidelines.json, api_nodes.json, **v2:** onboarding_starters.json)
 
 ## Conventions
 
